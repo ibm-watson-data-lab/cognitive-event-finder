@@ -1,0 +1,32 @@
+{
+  "name": "cognitive-event-finder",
+  "version": "0.0.1",
+  "description": "Cognitive Event Finder",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ibm-cds-labs/cognitive-event-finder"
+  },
+  "author": "Mark Watson <markwats@us.ibm.com>",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/ibm-cds-labs/cognitive-event-finder/issues"
+  },
+  "homepage": "https://github.com/ibm-cds-labs/cognitive-event-finder",
+  "dependencies": {
+    "cf-deployment-tracker-client": "^0.x",
+    "cfenv": "1.0.x",
+    "cloudant": "^1.6.2",
+    "dotenv": "^2.0.0",
+    "ejs": "^2.5.5",
+    "express": "4.13.x",
+    "twilio": "^2.11.1",
+    "uuid": "^3.0.1",
+    "watson-developer-cloud": "^2.8.2",
+    "websocket": "^1.0.23"
+  }
+}
