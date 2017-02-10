@@ -182,7 +182,7 @@ Vue.component('chat-message', {
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v9",
                 center: [-97.74306, 30.26715],
-                zoom: 13,
+                zoom: 15,
                 maxBounds: bounds
             });
 
@@ -200,7 +200,8 @@ Vue.component('chat-message', {
                 }
 
                 map.easeTo({
-                    pitch: 40
+                    pitch: 60,
+                    easing: easing
                 });
 
                 map.addLayer({
