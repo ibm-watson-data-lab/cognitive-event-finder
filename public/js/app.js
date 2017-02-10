@@ -173,16 +173,36 @@ Vue.component('chat-message', {
 
             document.getElementById('map').setAttribute("style", "display:inline");
             var popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: true });
+            var bounds = [
+                    [-98, 29],
+                    [-97, 31]
+                ] // Austin city bounds
+
             var map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/light-v9",
+                style: "mapbox://styles/mapbox/streets-v9",
                 center: [-97.74306, 30.26715],
-                zoom: 12,
-                maxBounds: [[-98, 30],[-97, 31]] // Austin city bounds
+                zoom: 13,
+                maxBounds: bounds
             });
-            map.fitBounds([min, max], { "padding": 12 });
+
+            try {
+                //If no results are returned, don't fail on fitBounds()
+                map.fitBounds([min, max], { "padding": 12 });
+            } catch (e) {
+                console.log(e)
+            }
 
             map.on('load', function() {
+
+                function easing(t) {
+                    return t * (5 - t);
+                }
+
+                map.easeTo({
+                    pitch: 40
+                });
+
                 map.addLayer({
                     "id": "eventslayer",
                     "type": "circle",
@@ -198,13 +218,36 @@ Vue.component('chat-message', {
                         "circle-color": "#ff0000"
                     }
                 }, 'waterway-label');
+
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'composite',
+                    'source-layer': 'building',
+                    'filter': ['==', 'extrude', 'true'],
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'paint': {
+                        'fill-extrusion-color': '#aaa',
+                        'fill-extrusion-height': {
+                            'type': 'identity',
+                            'property': 'height'
+                        },
+                        'fill-extrusion-base': {
+                            'type': 'identity',
+                            'property': 'min_height'
+                        },
+                        'fill-extrusion-opacity': .6
+                    }
+                }, 'waterway-label');
             });
 
             map.on('mousemove', function(e) {
                 var fs = map.queryRenderedFeatures(e.point, { layers: ["eventslayer"] });
                 map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) { popup.remove();
-                    return; };
+                if (!fs.length) {
+                    popup.remove();
+                    return;
+                };
                 var f = fs[0];
                 // var keylength = Object.keys(f.properties).length;
                 // popuphtml = "";
