@@ -5,7 +5,8 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/master.css">
     <link rel="stylesheet" href="css/vis.min.css">
-    <link rel="stylesheet" href="https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.css">
+    <link rel="stylesheet" href="css/sxsw.css">
+    <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.css">
     <script>
         var webSocketProtocol = '<%= webSocketProtocol %>';
         var mapboxAccessToken = '<%= mapboxAccessToken%>';
@@ -14,7 +15,7 @@
 <body class="capped-layout">
 
 <header class="capped-layout_cap app-banner">
-    <span class="app-banner_title">Watson Event Bot</span>
+    <span class="app-banner_title">Watson Event Finder</span>
 </header>
 
 <div id="app">
@@ -28,12 +29,18 @@
             </div>
         </form>
         <div class="chat-message" v-for="msg in messages">
-            <div class="msg-body"><b>{{ msg.user }}</b>:<chat-message :key="msg.key" :msg="msg"></chat-message></div>
+            <div class="msg-body">
+                <div class="msg-chat bubble">
+                    <chat-message :key="msg.key" :msg="msg"></chat-message>
+                </div>
+                <div class="msg-user" v-html="msg.user"></div>
+            </div>
         </div>
     </div>
+    <div id="map"></div>
 </div>
 
-<script src="https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.js"></script>
+<script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.js"></script>
 <script src="js/pouchdb-6.1.0.min.js"></script>
 <script src="js/vis-4.5.0.min.js"></script>
 <script src="js/vue-2.1.8.min.js"></script>

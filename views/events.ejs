@@ -5,16 +5,17 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/master.css">
     <link rel="stylesheet" href="css/vis.min.css">
-    <link rel="stylesheet" href="https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.css">
+    <link rel="stylesheet" href="css/sxsw.css">
+    <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.css">
     <script>
         var events = <%- events %>;
-        var mapboxAccessToken = '<%= mapboxAccessToken%>';
+        var mapboxgl.accessToken = '<%= mapboxAccessToken%>';
     </script>
 </head>
 <body class="capped-layout">
 
 <header class="capped-layout_cap app-banner">
-    <span class="app-banner_title">Watson Event Bot</span>
+    <span class="app-banner_title">Watson Event Finder Mobile</span>
 </header>
 
 <div id="app">
@@ -25,7 +26,7 @@
     </div>
 </div>
 
-<script src="https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.js"></script>
+<script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.js"></script>
 <script src="js/pouchdb-6.1.0.min.js"></script>
 <script src="js/vis-4.5.0.min.js"></script>
 <script src="js/vue-2.1.8.min.js"></script>

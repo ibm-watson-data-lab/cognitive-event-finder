@@ -1,4 +1,4 @@
-var botUsername = 'bot';
+var botUsername = '<img src="watson_avatar_new.png">'; //'bot';
 var app = new Vue({
     el: '#app',
     data: {
@@ -38,7 +38,7 @@ var app = new Vue({
         },
         init() {
             // init mapbox
-            L.mapbox.accessToken = mapboxAccessToken;
+            mapboxgl.accessToken = mapboxAccessToken;
             setTimeout(app.onTimer, 1);
         },
         onTimer() {
@@ -99,43 +99,124 @@ var app = new Vue({
 Vue.component('chat-message', {
     props: ['msg'],
     render: function(createElement) {
-        if (this.msg.data.type == 'msg') {
-            return createElement('pre', this.msg.data.text);
-        }
-        else {
-            return createElement('div', {}, [
-                createElement('pre', this.msg.data.text),
-                createElement('div',
-                    {
-                        style: {
-                            width: "500px",
-                            height: "200px",
-                            display: true
-                        },
-                        attrs: {
-                            id: 'map' + this.msg.key
-                        }
-                    }
-                )]
-            );
-        }
+        // if (this.msg.data.type == 'msg') {
+            return createElement('div', {
+                domProps: {
+                    innerHTML: this.msg.data.text
+                }
+            });
+        // }
+        // else {
+        //     return createElement('div', {}, [
+        //         createElement('pre', this.msg.data.text),
+        //         createElement('div',
+        //             {
+        //                 style: {
+        //                     width: "500px",
+        //                     height: "200px",
+        //                     display: true
+        //                 },
+        //                 attrs: {
+        //                     id: 'map' + this.msg.key
+        //                 }
+        //             }
+        //         )]
+        //     );
+        // }
     },
     mounted: function() {
         if (this.msg.data.type == 'map') {
+            var geoj = {
+                type: "FeatureCollection"
+            };
+            var features = [];
             var points = [];
             var point;
+            var feature;
+            var min = [];
+            var max = [];
             for (var i=0; i<this.msg.data.points.length; i++) {
                 point = this.msg.data.points[i];
-                if (point.geometry) {
-                    if (!point.type) {
-                        point.type = "Feature";
+                feature = { type: "Feature" };
+                feature.properties = {};
+                for (var prop in point) {
+                    if (point.hasOwnProperty(prop)) {
+                        if (prop == "geometry") {
+                            feature.geometry = {};
+                            if (!point[prop].type) {
+                                feature.geometry.type = "Point";
+                            } else {
+                                feature.geometry.type = point[prop].type;
+                            }
+                            // something is screwy with data so do this weird hack
+                            if ( point.geometry.coordinates[0]<0) // 0 is x
+                                feature.geometry.coordinates = point.geometry.coordinates;
+                            else 
+                                feature.geometry.coordinates = [point.geometry.coordinates[1], point.geometry.coordinates[0]];
+                        } else { // end geometry
+                            feature.properties[prop] = point[prop];
+                        }
                     }
-                    points.push({type: point.type, geometry: point.geometry});
                 }
+
+                x = feature.geometry.coordinates[0];
+                y = feature.geometry.coordinates[1];
+                if (i==0) { // set initial bbox
+                    min[0] = max[0] = x;
+                    min[1] = max[1] = y;
+                } else {
+                    if (x<min[0]) min[0] = x;
+                    if (x>max[0]) max[0] = x;
+                    if (y<min[1]) min[1] = y;
+                    if (y>max[1]) max[1] = y;
+                }
+
+                features.push(feature);
             }
-            var map = L.mapbox.map('map'+this.msg.key, 'mapbox.light').setView([30.26715, -97.74306], 14);
-            L.mapbox.featureLayer().setGeoJSON(points).addTo(map);
-            map.scrollWheelZoom.disable();
+            geoj.features = features;
+            // console.log(geoj);
+
+            document.getElementById('map').setAttribute("style", "display:inline");
+            var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
+            var map = new mapboxgl.Map({
+                container: "map",
+                style: "mapbox://styles/mapbox/light-v9", 
+                center: [ -97.74306, 30.26715], 
+                zoom: 12
+            });
+            map.fitBounds([min, max], {"padding":12});
+
+            map.on('load', function(){
+                map.addLayer({
+                    "id":"eventslayer",
+                    "type":"circle", 
+                    "source": {
+                        "type":"geojson",
+                        "cluster": true, 
+                        "clusterMaxZoom": 11, 
+                        "clusterRadius": 20, 
+                        "data":geoj
+                    }, 
+                    "paint": {
+                        "circle-radius":8,
+                        "circle-color":"#ff0000"
+                    }
+                });
+            });
+
+            map.on('mousemove', function(e) {
+                var fs = map.queryRenderedFeatures(e.point,{layers:["eventslayer"]});
+                map.getCanvas().style.cursor=(fs.length)?"pointer":"";
+                if (!fs.length) {popup.remove();return;};
+                var f = fs[0];
+                // var keylength = Object.keys(f.properties).length;
+                // popuphtml = "";
+                // for (var key in f.properties) {
+                //     popuphtml += "<b>"+key+": </b> "+f.properties[key]+"<br/>"
+                // }
+                popuphtml = "<b>"+f.properties.name+"</b><p>"+f.properties.description+"</p>";
+                popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+            });
         }
     }
 });
