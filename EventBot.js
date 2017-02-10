@@ -152,16 +152,18 @@ class EventBot {
     handleTopicMessage(state, response, message) {
         let topic = message;
         var reply = {
-            text: 'Here is a list of events:\n',
+            text: '<b>Here is a list of events:</b><br/>',
             points: []
         };
         return this.eventStore.findEvents(topic, 5)
             .then((events) => {
+                reply.text += '<ul>';
                 for (var event of events) {
-                    reply.text += '\n' + event.name;
+                    reply.text += '<li>' + event.name + '</li>';
                     reply.points.push(event);
                 }
-                reply.text += '\n\nWould you like us to text you the results?'
+                reply.text += '</ul>';
+                reply.text += '<p>Would you like us to text you the results?</p>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -169,16 +171,18 @@ class EventBot {
 
     handleSuggestionMessage(state, response) {
         var reply = {
-            text: 'Here is a list of events:\n',
+            text: 'Here is a list of event suggestions:\n',
             points: []
         };
         return this.eventStore.findSuggestedEvents(5)
             .then((events) => {
+                reply.text += '<ul>';
                 for (var event of events) {
-                    reply.text += '\n' + event.name;
+                    reply.text += '<li>' + event.name + '</li>';
                     reply.points.push(event);
                 }
-                reply.text += '\n\nWould you like us to text you the results?'
+                reply.text += '</ul>';
+                reply.text += '<p>Would you like us to text you the results?</p>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
