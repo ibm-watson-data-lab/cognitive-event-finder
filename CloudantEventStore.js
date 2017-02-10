@@ -41,7 +41,7 @@ class CloudantEventStore {
             })
             .then(() => {
                 // see if the by_popularity design doc exists, if not then create it
-                return this.db.find({selector: {'_id': '_design/by_keyword'}});
+                return this.db.find({selector: {'_id': '_design/search'}});
             })
             .then((result) => {
                 if (result && result.docs && result.docs.length > 0) {
@@ -49,10 +49,13 @@ class CloudantEventStore {
                 }
                 else {
                     let designDoc = {
-                        _id: '_design/by_keyword',
+                        _id: '_design/search',
                         indexes: {
-                            searchidx: {
-                                index: 'function (doc) { \nif (doc.name) { \nindex("name", doc.name, {store: true, boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {store: true, boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {store: true, boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {store: true, boost: 10}); \n} \n} \n}'
+                            by_topic: {
+                                index: 'function (doc) { \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n}'
+                            },
+                            by_speaker: {
+                                index: 'function (doc) { \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n}'
                             }
                         }
                     };
@@ -65,14 +68,43 @@ class CloudantEventStore {
     }
 
     /**
-     * Finds a list of events based on keywords.
-     * @param keywords - Keywords to search for
+     * Searches for events based on topic.
+     * @param searchStr - The search string
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findEvents(keywords, count) {
-        var query = `name:${keywords} OR description:${keywords} OR track:${keywords} OR tag:${keywords}`;
-        return this.db.search('by_keyword', 'searchidx', {q:query, include_docs:true})
+    findEventsByTopic(searchStr, count) {
+        var query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr}`;
+        return this.db.search('search', 'by_topic', {q:query, include_docs:true})
+            .then((result) => {
+                if (result.rows) {
+                    var events = [];
+                    var i = -1;
+                    for (var row of result.rows) {
+                        if (count <= 0 || ++i < count) {
+                            events.push(row.doc);
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    return Promise.resolve(events);
+                }
+                else {
+                    return Promise.resolve();
+                }
+            });
+    }
+
+    /**
+     * Searches for events based on speaker.
+     * @param searchStr - The search string
+     * @param count - Max number of events to return
+     * @returns {Promise.<TResult>}
+     */
+    findEventsBySpeaker(searchStr, count) {
+        var query = `speaker:${searchStr}`;
+        return this.db.search('search', 'by_speaker', {q:query, include_docs:true})
             .then((result) => {
                 if (result.rows) {
                     var events = [];
@@ -100,7 +132,7 @@ class CloudantEventStore {
      */
     findSuggestedEvents(count) {
         var query = '*:*';
-        return this.db.search('by_keyword', 'searchidx', {q:query, include_docs:true})
+        return this.db.search('by_topic', 'searchidx', {q:query, include_docs:true})
             .then((result) => {
                 if (result.rows) {
                     var events = [];
