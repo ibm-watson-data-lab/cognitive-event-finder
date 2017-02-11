@@ -1,11 +1,6 @@
 #map {
-    background-color: #ccc;
-    width: calc(100% - 412px);
-    height: 100%;
-    position: absolute;
-    top: 4px;
-    left: 412px;
-    display: none;
+    width: 100%;
+    height: 736px;
 }
 .mapboxgl-popup {
     max-width: 396px;

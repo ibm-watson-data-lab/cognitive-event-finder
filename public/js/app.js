@@ -1,5 +1,8 @@
 var botUsername = '<img src="watson_avatar_new.png">'; //'bot';
-var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
+var popup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: true
+});
 var map;
 
 var app = new Vue({
@@ -14,7 +17,7 @@ var app = new Vue({
         awaitingResponse: false
     },
     methods: {
-        isMatch: function(msg, strLowers) {
+        isMatch: function (msg, strLowers) {
             var msgLower = msg.toLowerCase();
             for (var i = 0; i < strLowers.length; i++) {
                 if (strLowers[i].indexOf(msgLower) >= 0) {
@@ -23,20 +26,26 @@ var app = new Vue({
             }
             return false;
         },
-        submitMessage: function() {
+        submitMessage: function () {
             app.messages.unshift({
                 user: 'The Dude',
                 ts: new Date(),
                 key: new Date().getTime() + '',
-                data: {type:'msg', text:app.message},
-                            styleObj: {
-                                'float': 'left'
-                            }
+                data: {
+                    type: 'msg',
+                    text: app.message
+                },
+                styleObj: {
+                    'float': 'left'
+                }
             });
             if (!app.webSocketConnected) {
                 app.showOfflineMessage();
             } else {
-                app.webSocket.send(JSON.stringify({ type: 'msg', text: app.message }));
+                app.webSocket.send(JSON.stringify({
+                    type: 'msg',
+                    text: app.message
+                }));
                 app.awaitingResponse = true;
             }
             app.message = '';
@@ -45,11 +54,11 @@ var app = new Vue({
             // init mapbox
             mapboxgl.accessToken = mapboxAccessToken;
             var bounds = [
-                    [-98, 29],
-                    [-97, 31]
-                ] // Austin city bounds
+                [-98, 29],
+                [-97, 31]
+            ] // Austin city bounds
 
-            var map = new mapboxgl.Map({
+            map = new mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v9",
                 center: [-97.74306, 30.26715],
@@ -63,7 +72,9 @@ var app = new Vue({
             if (!app.webSocketConnected) {
                 app.connect();
             } else {
-                app.webSocket.send(JSON.stringify({ type: 'ping' }));
+                app.webSocket.send(JSON.stringify({
+                    type: 'ping'
+                }));
             }
             setTimeout(app.onTimer, 5000);
         },
@@ -71,11 +82,11 @@ var app = new Vue({
             if ("WebSocket" in window) {
                 let webSocketUrl = app.webSocketProtocol + window.location.host;
                 app.webSocket = new WebSocket(webSocketUrl);
-                app.webSocket.onopen = function() {
+                app.webSocket.onopen = function () {
                     console.log('Web socket connected.');
                     app.webSocketConnected = true;
                 };
-                app.webSocket.onmessage = function(evt) {
+                app.webSocket.onmessage = function (evt) {
                     //console.log('Message received: ' + evt.data);
                     app.awaitingResponse = false;
                     app.webSocketConnected = true;
@@ -85,7 +96,7 @@ var app = new Vue({
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
-                            data: data, 
+                            data: data,
                             styleObj: {
                                 'float': 'right'
                             }
@@ -94,7 +105,7 @@ var app = new Vue({
                         //console.log('Received ping.');
                     }
                 };
-                app.webSocket.onclose = function() {
+                app.webSocket.onclose = function () {
                     console.log('Websocket closed.');
                     if (app.awaitingResponse) {
                         app.awaitingResponse = false;
@@ -109,40 +120,21 @@ var app = new Vue({
     }
 });
 
-(function() {
+(function () {
     // Initialize vue app
     app.init();
 })();
 
 Vue.component('chat-message', {
     props: ['msg'],
-    render: function(createElement) {
-        // if (this.msg.data.type == 'msg') {
+    render: function (createElement) {
         return createElement('div', {
             domProps: {
                 innerHTML: this.msg.data.text
             }
         });
-        // }
-        // else {
-        //     return createElement('div', {}, [
-        //         createElement('pre', this.msg.data.text),
-        //         createElement('div',
-        //             {
-        //                 style: {
-        //                     width: "500px",
-        //                     height: "200px",
-        //                     display: true
-        //                 },
-        //                 attrs: {
-        //                     id: 'map' + this.msg.key
-        //                 }
-        //             }
-        //         )]
-        //     );
-        // }
     },
-    mounted: function() {
+    mounted: function () {
         if (this.msg.data.type == 'map') {
             var geoj = {
                 type: "FeatureCollection"
@@ -155,7 +147,9 @@ Vue.component('chat-message', {
             var max = [];
             for (var i = 0; i < this.msg.data.points.length; i++) {
                 point = this.msg.data.points[i];
-                feature = { type: "Feature" };
+                feature = {
+                    type: "Feature"
+                };
                 feature.properties = {};
                 for (var prop in point) {
                     if (point.hasOwnProperty(prop)) {
@@ -193,68 +187,72 @@ Vue.component('chat-message', {
             }
             geoj.features = features;
 
-                map.addLayer({
-                    "id": "eventslayer",
-                    "type": "circle",
-                    "source": {
-                        "type": "geojson",
-                        "cluster": true,
-                        "clusterMaxZoom": 11,
-                        "clusterRadius": 20,
-                        "data": geoj
+            map.addLayer({
+                "id": "eventslayer",
+                "type": "circle",
+                "source": {
+                    "type": "geojson",
+                    "cluster": true,
+                    "clusterMaxZoom": 11,
+                    "clusterRadius": 20,
+                    "data": geoj
+                },
+                "paint": {
+                    "circle-radius": 8,
+                    "circle-color": "#ff0000"
+                }
+            }, 'events-label');
+
+            map.addLayer({
+                'id': '3d-buildings',
+                'source': 'composite',
+                'source-layer': 'building',
+                'filter': ['==', 'extrude', 'true'],
+                'type': 'fill-extrusion',
+                'minzoom': 15,
+                'paint': {
+                    'fill-extrusion-color': '#aaa',
+                    'fill-extrusion-height': {
+                        'type': 'identity',
+                        'property': 'height'
                     },
-                    "paint": {
-                        "circle-radius": 8,
-                        "circle-color": "#ff0000"
-                    }
-                }, 'events-label');
+                    'fill-extrusion-base': {
+                        'type': 'identity',
+                        'property': 'min_height'
+                    },
+                    'fill-extrusion-opacity': .6
+                }
+            }, 'events-label');
 
-                map.addLayer({
-                    'id': '3d-buildings',
-                    'source': 'composite',
-                    'source-layer': 'building',
-                    'filter': ['==', 'extrude', 'true'],
-                    'type': 'fill-extrusion',
-                    'minzoom': 15,
-                    'paint': {
-                        'fill-extrusion-color': '#aaa',
-                        'fill-extrusion-height': {
-                            'type': 'identity',
-                            'property': 'height'
-                        },
-                        'fill-extrusion-base': {
-                            'type': 'identity',
-                            'property': 'min_height'
-                        },
-                        'fill-extrusion-opacity': .6
-                    }
-                }, 'events-label');
-
-              try {
+            try {
                 //If no results are returned, don't fail on fitBounds()
-                map.fitBounds([min, max], { "padding": 256 });
+                map.fitBounds([min, max], {
+                    "padding": 256
+                });
             } catch (e) {
                 console.log(e)
             }
 
-                function easing(t) {
-                    return t * (5 - t);
-                }
+            function easing(t) {
+                return t * (5 - t);
+            }
 
-                map.easeTo({
-                    pitch: 60,
-                    easing: easing
+            map.easeTo({
+                pitch: 60,
+                easing: easing
+            });
+
+            map.on('mousemove', function (e) {
+                var fs = map.queryRenderedFeatures(e.point, {
+                    layers: ["eventslayer"]
                 });
-
-            map.on('mousemove', function(e) {
-                var fs = map.queryRenderedFeatures(e.point, { layers: ["eventslayer"] });
                 map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
                 if (!fs.length) {
                     popup.remove();
                     return;
                 };
                 var f = fs[0];
-                popuphtml = "<span class='popup-title'>"+f.properties.name+"</span><p>"+f.properties.description+"</p>";
+                popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
                 popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
             });
         }
