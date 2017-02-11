@@ -3,13 +3,17 @@
     height: 736px;
 }
 .mapboxgl-popup {
-    max-width: 200px;
+    max-width: 396px;
 }
-
+.popup-title {
+    color: #56A8FD;
+    font-weight: 500;
+    font-size: 12pt;
+}
 .app-banner {
     background-color: #666;
     font: normal normal 700 42px 'Roboto', sans-serif;;
-    color: #DD1F80;
+    color: #FFF;
 }
 
 body,html {

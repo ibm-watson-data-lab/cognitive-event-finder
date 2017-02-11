@@ -1,5 +1,7 @@
 var botUsername = '<img src="watson_avatar_new.png">'; //'bot';
+var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
 var map;
+
 var app = new Vue({
     el: '#app',
     data: {
@@ -44,7 +46,6 @@ var app = new Vue({
             // init mapbox
             mapboxgl.accessToken = mapboxAccessToken;
             // document.getElementById('map').setAttribute("style", "display:inline");
-            var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
             map = new mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/light-v9", 
@@ -192,37 +193,29 @@ Vue.component('chat-message', {
             geoj.features = features;
             // console.log(geoj);
 
-            map.fitBounds([min, max], {"padding":12});
-
-            map.on('load', function(){
-                map.addLayer({
-                    "id":"eventslayer",
-                    "type":"circle", 
-                    "source": {
-                        "type":"geojson",
-                        "cluster": true, 
-                        "clusterMaxZoom": 11, 
-                        "clusterRadius": 20, 
-                        "data":geoj
-                    }, 
-                    "paint": {
-                        "circle-radius":8,
-                        "circle-color":"#ff0000"
-                    }
-                });
+            map.addLayer({
+                "id":"eventslayer",
+                "type":"circle", 
+                "source": {
+                    "type":"geojson",
+                    "cluster": true, 
+                    "clusterMaxZoom": 11, 
+                    "clusterRadius": 20, 
+                    "data":geoj
+                }, 
+                "paint": {
+                    "circle-radius":8,
+                    "circle-color":"#ff0000"
+                }
             });
+            map.fitBounds([min, max], {"padding":256});
 
             map.on('mousemove', function(e) {
                 var fs = map.queryRenderedFeatures(e.point,{layers:["eventslayer"]});
                 map.getCanvas().style.cursor=(fs.length)?"pointer":"";
                 if (!fs.length) {popup.remove();return;};
                 var f = fs[0];
-                // var keylength = Object.keys(f.properties).length;
-                // popuphtml = "";
-                // for (var key in f.properties) {
-                //     popuphtml += "<b>"+key+": </b> "+f.properties[key]+"<br/>"
-                // }
-                popuphtml = "<b>"+f.properties.name+"</b><p>"+f.properties.description+"</p>";
+                popuphtml = "<span class='popup-title'>"+f.properties.name+"</span><p>"+f.properties.description+"</p>";
                 popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
             });
         }
