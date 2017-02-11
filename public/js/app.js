@@ -14,9 +14,9 @@ var app = new Vue({
         awaitingResponse: false
     },
     methods: {
-        isMatch : function(msg, strLowers) {
+        isMatch: function(msg, strLowers) {
             var msgLower = msg.toLowerCase();
-            for (var i=0; i<strLowers.length; i++) {
+            for (var i = 0; i < strLowers.length; i++) {
                 if (strLowers[i].indexOf(msgLower) >= 0) {
                     return true;
                 }
@@ -33,11 +33,10 @@ var app = new Vue({
                                 'float': 'left'
                             }
             });
-            if (! app.webSocketConnected) {
+            if (!app.webSocketConnected) {
                 app.showOfflineMessage();
-            }
-            else {
-                app.webSocket.send(JSON.stringify({type: 'msg', text: app.message}));
+            } else {
+                app.webSocket.send(JSON.stringify({ type: 'msg', text: app.message }));
                 app.awaitingResponse = true;
             }
             app.message = '';
@@ -45,22 +44,26 @@ var app = new Vue({
         init() {
             // init mapbox
             mapboxgl.accessToken = mapboxAccessToken;
-            // document.getElementById('map').setAttribute("style", "display:inline");
-            map = new mapboxgl.Map({
+            var bounds = [
+                    [-98, 29],
+                    [-97, 31]
+                ] // Austin city bounds
+
+            var map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/light-v9", 
-                center: [ -97.74306, 30.26715], 
-                zoom: 12
+                style: "mapbox://styles/mapbox/streets-v9",
+                center: [-97.74306, 30.26715],
+                zoom: 15,
+                maxBounds: bounds
             });
 
             setTimeout(app.onTimer, 1);
         },
         onTimer() {
-            if (! app.webSocketConnected) {
+            if (!app.webSocketConnected) {
                 app.connect();
-            }
-            else {
-                app.webSocket.send(JSON.stringify({type: 'ping'}));
+            } else {
+                app.webSocket.send(JSON.stringify({ type: 'ping' }));
             }
             setTimeout(app.onTimer, 5000);
         },
@@ -72,7 +75,7 @@ var app = new Vue({
                     console.log('Web socket connected.');
                     app.webSocketConnected = true;
                 };
-                app.webSocket.onmessage = function(evt)  {
+                app.webSocket.onmessage = function(evt) {
                     //console.log('Message received: ' + evt.data);
                     app.awaitingResponse = false;
                     app.webSocketConnected = true;
@@ -87,8 +90,7 @@ var app = new Vue({
                                 'float': 'right'
                             }
                         });
-                    }
-                    else if (data.type == 'ping') {
+                    } else if (data.type == 'ping') {
                         //console.log('Received ping.');
                     }
                 };
@@ -100,8 +102,7 @@ var app = new Vue({
                     app.webSocketConnected = false;
                     app.webSocket = null;
                 };
-            }
-            else {
+            } else {
                 alert("WebSocket not supported browser.");
             }
         }
@@ -117,11 +118,11 @@ Vue.component('chat-message', {
     props: ['msg'],
     render: function(createElement) {
         // if (this.msg.data.type == 'msg') {
-            return createElement('div', {
-                domProps: {
-                    innerHTML: this.msg.data.text
-                }
-            });
+        return createElement('div', {
+            domProps: {
+                innerHTML: this.msg.data.text
+            }
+        });
         // }
         // else {
         //     return createElement('div', {}, [
@@ -152,7 +153,7 @@ Vue.component('chat-message', {
             var feature;
             var min = [];
             var max = [];
-            for (var i=0; i<this.msg.data.points.length; i++) {
+            for (var i = 0; i < this.msg.data.points.length; i++) {
                 point = this.msg.data.points[i];
                 feature = { type: "Feature" };
                 feature.properties = {};
@@ -166,9 +167,9 @@ Vue.component('chat-message', {
                                 feature.geometry.type = point[prop].type;
                             }
                             // something is screwy with data so do this weird hack
-                            if ( point.geometry.coordinates[0]<0) // 0 is x
+                            if (point.geometry.coordinates[0] < 0) // 0 is x
                                 feature.geometry.coordinates = point.geometry.coordinates;
-                            else 
+                            else
                                 feature.geometry.coordinates = [point.geometry.coordinates[1], point.geometry.coordinates[0]];
                         } else { // end geometry
                             feature.properties[prop] = point[prop];
@@ -178,42 +179,80 @@ Vue.component('chat-message', {
 
                 x = feature.geometry.coordinates[0];
                 y = feature.geometry.coordinates[1];
-                if (i==0) { // set initial bbox
+                if (i == 0) { // set initial bbox
                     min[0] = max[0] = x;
                     min[1] = max[1] = y;
                 } else {
-                    if (x<min[0]) min[0] = x;
-                    if (x>max[0]) max[0] = x;
-                    if (y<min[1]) min[1] = y;
-                    if (y>max[1]) max[1] = y;
+                    if (x < min[0]) min[0] = x;
+                    if (x > max[0]) max[0] = x;
+                    if (y < min[1]) min[1] = y;
+                    if (y > max[1]) max[1] = y;
                 }
 
                 features.push(feature);
             }
             geoj.features = features;
-            // console.log(geoj);
 
-            map.addLayer({
-                "id":"eventslayer",
-                "type":"circle", 
-                "source": {
-                    "type":"geojson",
-                    "cluster": true, 
-                    "clusterMaxZoom": 11, 
-                    "clusterRadius": 20, 
-                    "data":geoj
-                }, 
-                "paint": {
-                    "circle-radius":8,
-                    "circle-color":"#ff0000"
+                map.addLayer({
+                    "id": "eventslayer",
+                    "type": "circle",
+                    "source": {
+                        "type": "geojson",
+                        "cluster": true,
+                        "clusterMaxZoom": 11,
+                        "clusterRadius": 20,
+                        "data": geoj
+                    },
+                    "paint": {
+                        "circle-radius": 8,
+                        "circle-color": "#ff0000"
+                    }
+                }, 'events-label');
+
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'composite',
+                    'source-layer': 'building',
+                    'filter': ['==', 'extrude', 'true'],
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'paint': {
+                        'fill-extrusion-color': '#aaa',
+                        'fill-extrusion-height': {
+                            'type': 'identity',
+                            'property': 'height'
+                        },
+                        'fill-extrusion-base': {
+                            'type': 'identity',
+                            'property': 'min_height'
+                        },
+                        'fill-extrusion-opacity': .6
+                    }
+                }, 'events-label');
+
+              try {
+                //If no results are returned, don't fail on fitBounds()
+                map.fitBounds([min, max], { "padding": 256 });
+            } catch (e) {
+                console.log(e)
+            }
+
+                function easing(t) {
+                    return t * (5 - t);
                 }
-            });
-            map.fitBounds([min, max], {"padding":256});
+
+                map.easeTo({
+                    pitch: 60,
+                    easing: easing
+                });
 
             map.on('mousemove', function(e) {
-                var fs = map.queryRenderedFeatures(e.point,{layers:["eventslayer"]});
-                map.getCanvas().style.cursor=(fs.length)?"pointer":"";
-                if (!fs.length) {popup.remove();return;};
+                var fs = map.queryRenderedFeatures(e.point, { layers: ["eventslayer"] });
+                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+                if (!fs.length) {
+                    popup.remove();
+                    return;
+                };
                 var f = fs[0];
                 popuphtml = "<span class='popup-title'>"+f.properties.name+"</span><p>"+f.properties.description+"</p>";
                 popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
