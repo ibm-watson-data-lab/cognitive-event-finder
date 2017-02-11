@@ -1,30 +1,76 @@
 #map {
-background-color: #ccc;
-    width: 800px;
-    height: 600px;
-    position: absolute;
-    top: 4px;
-    left: 412px;
-    display: none;
+    width: 100%;
+    height: 736px;
 }
 .mapboxgl-popup {
     max-width: 200px;
 }
 
-.layout_section {
-    padding: 4px;
-    width: 400px;
+.app-banner {
+    background-color: #666;
+    font: normal normal 700 42px 'Roboto', sans-serif;;
+    color: #DD1F80;
 }
 
+body,html {
+    font-family: 'Roboto', sans-serif;
+}
+
+#convo-section {
+    position: absolute;
+    top: -60px;
+    right: 24px;
+    font-size: 9pt;
+    padding: 12px;
+    z-index: 9;
+    height: 196px;
+    width: 512px;
+    background-color: rgba(255,255,255,0.85);
+    border-radius: 12px;
+    border: 6px solid #DD1F80;
+    overflow-y: auto;
+}
+
+#message {
+    display: initial;
+    width: 85%;
+
+}
+
+#twitter-feed-section {
+    position: absolute;
+    bottom: 84px;
+    left: 48px;
+    font-size: 9pt;
+    z-index: 4;
+    height: 196px;
+    width: 384px;
+    background-color: rgba(86,168,253,0.55);
+    border-radius: 12px;
+    border: 6px solid #56A8FD;
+}
+
+
 .form {
-    border: 4px solid gray;
+    /*border: 4px solid gray;
     border-radius: 18px;
     padding: 12px;
-    width: 400px;
+    width: 400px;*/
 }
 
 .msg-user {
-    padding: 16px 0px 24px 48px;
+    padding: 0px 12px 0px 0px;
+    font-weight: 700;
+}
+.msg-user-right {
+    float: right;
+}
+.msg-user-left {
+    float: left;
+}
+
+.chat-message {
+    margin-top: 8px;
 }
 
 .bubble {
@@ -32,7 +78,7 @@ background-color: #ccc;
     display: inline-block;
     width: 400px;
     min-height: 1.5em;
-    padding: 12px;
+    padding: 6px;
     background: #FFFFFF;
     border: #7F7F7F solid 4px;
     -webkit-border-radius: 16px;

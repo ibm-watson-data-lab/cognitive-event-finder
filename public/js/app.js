@@ -1,4 +1,5 @@
 var botUsername = '<img src="watson_avatar_new.png">'; //'bot';
+var map;
 var app = new Vue({
     el: '#app',
     data: {
@@ -22,10 +23,13 @@ var app = new Vue({
         },
         submitMessage: function() {
             app.messages.unshift({
-                user: 'Me',
+                user: 'The Dude',
                 ts: new Date(),
                 key: new Date().getTime() + '',
-                data: {type:'msg', text:app.message}
+                data: {type:'msg', text:app.message},
+                            styleObj: {
+                                'float': 'left'
+                            }
             });
             if (! app.webSocketConnected) {
                 app.showOfflineMessage();
@@ -39,6 +43,15 @@ var app = new Vue({
         init() {
             // init mapbox
             mapboxgl.accessToken = mapboxAccessToken;
+            // document.getElementById('map').setAttribute("style", "display:inline");
+            var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
+            map = new mapboxgl.Map({
+                container: "map",
+                style: "mapbox://styles/mapbox/light-v9", 
+                center: [ -97.74306, 30.26715], 
+                zoom: 12
+            });
+
             setTimeout(app.onTimer, 1);
         },
         onTimer() {
@@ -68,7 +81,10 @@ var app = new Vue({
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
-                            data: data
+                            data: data, 
+                            styleObj: {
+                                'float': 'right'
+                            }
                         });
                     }
                     else if (data.type == 'ping') {
@@ -176,14 +192,6 @@ Vue.component('chat-message', {
             geoj.features = features;
             // console.log(geoj);
 
-            document.getElementById('map').setAttribute("style", "display:inline");
-            var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
-            var map = new mapboxgl.Map({
-                container: "map",
-                style: "mapbox://styles/mapbox/light-v9", 
-                center: [ -97.74306, 30.26715], 
-                zoom: 12
-            });
             map.fitBounds([min, max], {"padding":12});
 
             map.on('load', function(){
