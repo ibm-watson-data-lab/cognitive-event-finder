@@ -1233,7 +1233,7 @@ input::-webkit-inner-spin-button {
     overflow: auto;
 }
 
-.layout_section {
+.layout-section {
     max-width: 100%;
     padding: 36px 40px;
     padding: 2.25rem 2.5rem;

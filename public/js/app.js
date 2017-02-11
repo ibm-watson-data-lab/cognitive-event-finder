@@ -1,4 +1,7 @@
 var botUsername = '<img src="watson_avatar_new.png">'; //'bot';
+var popup = new mapboxgl.Popup({closeButton: false,closeOnClick: true});
+var map;
+
 var app = new Vue({
     el: '#app',
     data: {
@@ -22,10 +25,13 @@ var app = new Vue({
         },
         submitMessage: function() {
             app.messages.unshift({
-                user: 'Me',
+                user: 'The Dude',
                 ts: new Date(),
                 key: new Date().getTime() + '',
-                data: { type: 'msg', text: app.message }
+                data: {type:'msg', text:app.message},
+                            styleObj: {
+                                'float': 'left'
+                            }
             });
             if (!app.webSocketConnected) {
                 app.showOfflineMessage();
@@ -38,6 +44,19 @@ var app = new Vue({
         init() {
             // init mapbox
             mapboxgl.accessToken = mapboxAccessToken;
+            var bounds = [
+                    [-98, 29],
+                    [-97, 31]
+                ] // Austin city bounds
+
+            var map = new mapboxgl.Map({
+                container: "map",
+                style: "mapbox://styles/mapbox/streets-v9",
+                center: [-97.74306, 30.26715],
+                zoom: 15,
+                maxBounds: bounds
+            });
+
             setTimeout(app.onTimer, 1);
         },
         onTimer() {
@@ -66,7 +85,10 @@ var app = new Vue({
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
-                            data: data
+                            data: data, 
+                            styleObj: {
+                                'float': 'right'
+                            }
                         });
                     } else if (data.type == 'ping') {
                         //console.log('Received ping.');
@@ -171,39 +193,6 @@ Vue.component('chat-message', {
             }
             geoj.features = features;
 
-            document.getElementById('map').setAttribute("style", "display:inline");
-            var popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: true });
-            var bounds = [
-                    [-98, 29],
-                    [-97, 31]
-                ] // Austin city bounds
-
-            var map = new mapboxgl.Map({
-                container: "map",
-                style: "mapbox://styles/mapbox/streets-v9",
-                center: [-97.74306, 30.26715],
-                zoom: 15,
-                maxBounds: bounds
-            });
-
-            try {
-                //If no results are returned, don't fail on fitBounds()
-                map.fitBounds([min, max], { "padding": 12 });
-            } catch (e) {
-                console.log(e)
-            }
-
-            map.on('load', function() {
-
-                function easing(t) {
-                    return t * (5 - t);
-                }
-
-                map.easeTo({
-                    pitch: 60,
-                    easing: easing
-                });
-
                 map.addLayer({
                     "id": "eventslayer",
                     "type": "circle",
@@ -218,7 +207,7 @@ Vue.component('chat-message', {
                         "circle-radius": 8,
                         "circle-color": "#ff0000"
                     }
-                }, 'waterway-label');
+                }, 'events-label');
 
                 map.addLayer({
                     'id': '3d-buildings',
@@ -239,8 +228,23 @@ Vue.component('chat-message', {
                         },
                         'fill-extrusion-opacity': .6
                     }
-                }, 'waterway-label');
-            });
+                }, 'events-label');
+
+              try {
+                //If no results are returned, don't fail on fitBounds()
+                map.fitBounds([min, max], { "padding": 256 });
+            } catch (e) {
+                console.log(e)
+            }
+
+                function easing(t) {
+                    return t * (5 - t);
+                }
+
+                map.easeTo({
+                    pitch: 60,
+                    easing: easing
+                });
 
             map.on('mousemove', function(e) {
                 var fs = map.queryRenderedFeatures(e.point, { layers: ["eventslayer"] });
@@ -250,12 +254,7 @@ Vue.component('chat-message', {
                     return;
                 };
                 var f = fs[0];
-                // var keylength = Object.keys(f.properties).length;
-                // popuphtml = "";
-                // for (var key in f.properties) {
-                //     popuphtml += "<b>"+key+": </b> "+f.properties[key]+"<br/>"
-                // }
-                popuphtml = "<b>" + f.properties.name + "</b><p>" + f.properties.description + "</p>";
+                popuphtml = "<span class='popup-title'>"+f.properties.name+"</span><p>"+f.properties.description+"</p>";
                 popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
             });
         }
