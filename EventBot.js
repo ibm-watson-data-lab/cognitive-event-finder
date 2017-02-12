@@ -167,7 +167,7 @@ class EventBot {
         let speaker = message;
         this.logDialog(state, "speaker", speaker, {}, false);
         var reply = {
-            text: '<b>Here is a list of events:</b><br/>',
+            text: '<b>Here is a list of events happening today:</b><br/>',
             points: []
         };
         return this.eventStore.findEventsBySpeaker(speaker, 5)
@@ -178,7 +178,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<p>Would you like us to text you the results?</p>'
+                reply.text += '<p>Would you like me to text you the results?</p>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -197,7 +197,7 @@ class EventBot {
         let topic = message;
         this.logDialog(state, "topic", topic, {}, false);
         var reply = {
-            text: '<b>Here is a list of events:</b><br/>',
+            text: '<b>Here is a list of events happening today:</b><br/>',
             points: []
         };
         return this.eventStore.findEventsByTopic(topic, 5)
@@ -208,7 +208,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<p>Would you like us to text you the results?</p>'
+                reply.text += '<p>Would you like me to text you the results?</p>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -217,7 +217,7 @@ class EventBot {
     handleSuggestionMessage(state, response) {
         this.logDialog(state, "suggestion", "suggestion", {}, false);
         var reply = {
-            text: 'Here is a list of event suggestions:\n',
+            text: 'Here is a list of event suggestions for today:\n',
             points: []
         };
         return this.eventStore.findSuggestedEvents(5)
@@ -228,7 +228,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<p>Would you like us to text you the results?</p>'
+                reply.text += '<p>Would you like me to text you the results?</p>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
