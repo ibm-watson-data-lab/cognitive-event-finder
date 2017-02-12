@@ -35,8 +35,11 @@ var app = new Vue({
                     type: 'msg',
                     text: app.message
                 },
-                styleObj: {
+                userStyle: {
                     'float': 'left'
+                }, 
+                msgStyle: {
+                    'color': '#929292'
                 }
             });
             if (!app.webSocketConnected) {
@@ -97,8 +100,12 @@ var app = new Vue({
                             ts: new Date(),
                             key: new Date().getTime() + '',
                             data: data,
-                            styleObj: {
-                                'float': 'right'
+                            userStyle: {
+                                'float': 'left'
+                            }, 
+                            msgStyle: {
+                                'color': '#000000', 
+                                'font-size': '10pt'
                             }
                         });
                     } else if (data.type == 'ping') {

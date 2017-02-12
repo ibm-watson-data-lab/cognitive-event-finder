@@ -31,8 +31,8 @@
             </fieldset>
         </form>
         <div class="chat-message" v-for="msg in messages">
-            <div class="msg-body">
-                <div v-bind:style="msg.styleObj" class="msg-user" v-html="msg.user"></div>
+            <div class="msg-body" v-bind:style="msg.msgStyle">
+                <div v-bind:style="msg.userStyle" class="msg-user" v-html="msg.user"></div>
                 <div class="msg-chat">
                     <chat-message :key="msg.key" :msg="msg"></chat-message>
                 </div>
