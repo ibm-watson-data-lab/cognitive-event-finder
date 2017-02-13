@@ -19,30 +19,9 @@ class CloudantEventStore {
      */
     init() {
         console.log('Getting database...');
-        return this.cloudant.db.list()
-            .then((dbNames) => {
-                let exists = false;
-                for (let dbName of dbNames) {
-                    if (dbName == this.dbName) {
-                        exists = true;
-                    }
-                }
-                if (!exists) {
-                    console.log(`Creating database ${this.dbName}...`);
-                    return this.cloudant.db.create(this.dbName);
-                }
-                else {
-                    return Promise.resolve();
-                }
-            })
-            .then(() => {
-                this.db = this.cloudant.db.use(this.dbName);
-                return Promise.resolve();
-            })
-            .then(() => {
-                // see if the by_popularity design doc exists, if not then create it
-                return this.db.find({selector: {'_id': '_design/search'}});
-            })
+        this.db = this.cloudant.db.use(this.dbName);
+        // see if the by_popularity design doc exists, if not then create it
+        return this.db.find({selector: {'_id': '_design/search'}})
             .then((result) => {
                 if (result && result.docs && result.docs.length > 0) {
                     return Promise.resolve();
@@ -132,7 +111,7 @@ class CloudantEventStore {
      */
     findSuggestedEvents(count) {
         var query = '*:*';
-        return this.db.search('by_topic', 'searchidx', {q:query, include_docs:true})
+        return this.db.search('search', 'by_topic', {q:query, include_docs:true})
             .then((result) => {
                 if (result.rows) {
                     var events = [];
