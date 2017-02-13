@@ -90,7 +90,7 @@ var app = new Vue({
                     app.webSocketConnected = true;
                 };
                 app.webSocket.onmessage = function (evt) {
-                    //console.log('Message received: ' + evt.data);
+                    console.log('Message received: ' + evt.data);
                     app.awaitingResponse = false;
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
