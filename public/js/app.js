@@ -90,11 +90,11 @@ var app = new Vue({
                     app.webSocketConnected = true;
                 };
                 app.webSocket.onmessage = function (evt) {
-                    console.log('Message received: ' + evt.data);
                     app.awaitingResponse = false;
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
+                        console.log('Message received: ' + evt.data);
                         app.messages.unshift({
                             user: botUsername,
                             ts: new Date(),
@@ -109,7 +109,7 @@ var app = new Vue({
                             }
                         });
                     } else if (data.type == 'ping') {
-                        //console.log('Received ping.');
+                        console.log('Received ping.');
                     }
                 };
                 app.webSocket.onclose = function () {
