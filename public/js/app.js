@@ -254,8 +254,12 @@ Vue.component('chat-message', {
                 console.log(e)
             }
 
-            function easing(t) {
-                return t * (5 - t);
+            try {
+                function easing(t) {
+                    return t * (5 - t);
+                }
+            } catch (e) {
+                console.log(e)
             }
 
             map.easeTo({
