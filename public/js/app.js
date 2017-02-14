@@ -269,17 +269,21 @@ Vue.component('chat-message', {
             }
 
             map.on('mousemove', function(e) {
-                var fs = map.queryRenderedFeatures(e.point, {
-                    layers: ["eventslayer"]
-                });
-                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) {
-                    popup.remove();
-                    return;
-                };
-                var f = fs[0];
-                popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
-                popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                try {
+                    var fs = map.queryRenderedFeatures(e.point, {
+                        layers: ["eventslayer"]
+                    });
+                    map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+                    if (!fs.length) {
+                        popup.remove();
+                        return;
+                    };
+                    var f = fs[0];
+                    popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
+                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                } catch (e) {
+                    console.log(e)
+                }
             });
         }
     }
