@@ -10,7 +10,7 @@ class EventBot {
         this.userStateMap = {};
         this.eventStore = eventStore;
         this.dialogStore = dialogStore;
-        this.dialogTypes = ["start","search_speaker","speaker","search_topic","topic","suggestion","no_text","start_text","text","session"];
+        this.dialogTypes = ["start","name","search_speaker","speaker","search_topic","topic","suggestion","no_text","start_text","text","session"];
         this.mapboxClient = new MapboxClient(mapboxClientApiKey);
         this.twilioClient = twilioClient;
         this.twilioPhoneNumber = twilioPhoneNumber;
@@ -112,6 +112,9 @@ class EventBot {
                 else if (state.conversationContext['is_search_speaker']) {
                     return this.handleStartSpeakerMessage(state, response);
                 }
+                else if (state.conversationContext['is_name']) {
+                    return this.handleNameMessage(state, response, message);
+                }
                 else {
                     return this.handleStartMessage(state, response);
                 }
@@ -151,6 +154,17 @@ class EventBot {
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
         }
+        return Promise.resolve(reply);
+    }
+
+    handleNameMessage(state, response, message) {
+        this.logDialog(state, "name", "name", {}, false);
+        state.name = message;
+        let reply = '';
+        for (let i = 0; i < response.output['text'].length; i++) {
+            reply += response.output['text'][i] + '\n';
+        }
+        reply = reply.replace('__Name__', state.name);
         return Promise.resolve(reply);
     }
 
@@ -327,6 +341,7 @@ class EventBot {
     }
 
     clearUserState(state) {
+        state.name = null;
         state.lastReply = null;
         state.conversationContext = null;
         state.conversationStarted = false;

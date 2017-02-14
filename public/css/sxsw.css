@@ -52,6 +52,7 @@ body,html {
     background-color: rgba(86,168,253,0.55);
     border-radius: 12px;
     border: 6px solid #56A8FD;
+    overflow-y: hidden;
 }
 
 
