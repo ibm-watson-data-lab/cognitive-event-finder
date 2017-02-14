@@ -98,12 +98,7 @@ var app = new Vue({
                     app.awaitingResponse = false;
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
-                    if (data.type == 'map') {
-                        console.log('Map message received: ' + evt.data);
-                        app.username = data.username;
-                        app.updateMap(data);
-                    }
-                    else if (data.type == 'msg') {
+                    if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
                         app.username = data.username;
                         app.messages.unshift({
@@ -119,6 +114,9 @@ var app = new Vue({
                                 'font-size': '10pt'
                             }
                         });
+                        if (data.type == 'map') {
+                            app.updateMap(data);
+                        }
                     } else if (data.type == 'ping') {
                         console.log('Received ping.');
                     }
