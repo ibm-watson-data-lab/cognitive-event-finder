@@ -78,9 +78,11 @@ var app = new Vue({
             var origin = [-97.74046897888182,
                 30.26425663877134
             ]
-            if ('geometry' in features[0]) {
-                var destination = features[0].geometry.coordinates
-                console.log('used custom destination')
+            if (features.length) {
+                if ('geometry' in features[0]) {
+                    var destination = features[0].geometry.coordinates
+                    console.log('used custom destination')
+                }
             } else {
                 var destination = [-97.74497509002686,
                     30.270001765380385
