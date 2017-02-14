@@ -98,7 +98,12 @@ var app = new Vue({
                     app.awaitingResponse = false;
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
-                    if (data.type == 'msg' || data.type == 'map') {
+                    if (data.type == 'map') {
+                        console.log('Map message received: ' + evt.data);
+                        app.username = data.username;
+                        app.updateMap(data);
+                    }
+                    else if (data.type == 'msg') {
                         console.log('Message received: ' + evt.data);
                         app.username = data.username;
                         app.messages.unshift({
@@ -130,37 +135,18 @@ var app = new Vue({
             else {
                 alert("WebSocket not supported browser.");
             }
-        }
-    }
-});
-
-(function() {
-    // Initialize vue app
-    app.init();
-})();
-
-Vue.component('chat-message', {
-    props: ['msg'],
-    render: function(createElement) {
-        return createElement('div', {
-            domProps: {
-                innerHTML: this.msg.data.text
-            }
-        });
-    },
-    mounted: function() {
-        if (this.msg.data.type == 'map') {
+        },
+        updateMap(data) {
             var geoj = {
                 type: "FeatureCollection"
             };
             var features = [];
-            var points = [];
             var point;
             var feature;
             var min = [];
             var max = [];
-            for (var i = 0; i < this.msg.data.points.length; i++) {
-                point = this.msg.data.points[i];
+            for (var i = 0; i < data.points.length; i++) {
+                point = data.points[i];
                 feature = {
                     type: "Feature"
                 };
@@ -288,5 +274,21 @@ Vue.component('chat-message', {
                 }
             });
         }
+    }
+});
+
+(function() {
+    // Initialize vue app
+    app.init();
+})();
+
+Vue.component('chat-message', {
+    props: ['msg'],
+    render: function(createElement) {
+        return createElement('div', {
+            domProps: {
+                innerHTML: this.msg.data.text
+            }
+        });
     }
 });
