@@ -66,8 +66,8 @@ var app = new Vue({
                 style: "mapbox://styles/mapbox/streets-v9",
                 center: [-97.74306, 30.26715],
                 zoom: 15,
-                maxBounds: bounds,
-                minZoom: 13
+                pitch: 30,
+                minZoom: 12
             });
 
             setTimeout(app.onTimer, 1);

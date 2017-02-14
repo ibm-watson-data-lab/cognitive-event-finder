@@ -3,13 +3,11 @@
     width: 100%;
     top: 0px;
     height: calc(100% - 80px);
-    overflow-y: hidden;
 }
 .map-events {
     position: relative;
     width: 100%;
     height: calc(100% - 80px);
-    overflow-y: hidden;
 }
 .mapboxgl-popup {
     max-width: 396px;

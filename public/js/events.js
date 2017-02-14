@@ -64,8 +64,7 @@ var app = new Vue({
                 center: [-97.74306, 30.26715],
                 zoom: 15,
                 maxBounds: bounds,
-                pitch: 30,
-                minZoom: 13
+                minZoom: 12
             });
 
             var userLocation = {
