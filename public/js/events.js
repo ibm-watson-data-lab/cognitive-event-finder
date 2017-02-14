@@ -80,10 +80,12 @@ var app = new Vue({
             ]
             if ('geometry' in features[0]) {
                 var destination = features[0].geometry.coordinates
+                console.log('used custom destination')
             } else {
                 var destination = [-97.74497509002686,
                     30.270001765380385
                 ]
+                console.log('used default destination')
             }
 
             var directions = new MapboxDirections({
@@ -99,13 +101,14 @@ var app = new Vue({
                 controls: {
                     inputs: false,
                     instructions: true
-                }
+                },
+                interactive: false
             });
 
             var geolocate = new mapboxgl.GeolocateControl({
                 positionOptions: {
                     enableHighAccuracy: true,
-                    timeout: 5000, //Poll every 5 seconds
+                    timeout: 10000, //Poll every 5 seconds
                     maximumAge: 0
                 },
                 watchPosition: true //Update marker on geolocate
