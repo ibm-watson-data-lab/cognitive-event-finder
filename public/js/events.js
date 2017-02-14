@@ -53,12 +53,19 @@ var app = new Vue({
             }
             geoj.features = features;
 
+            var bounds = [
+                    [-98, 29],
+                    [-97, 31]
+                ] // Austin city bounds
+
             var map = new mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v9",
                 center: [-97.74306, 30.26715],
                 zoom: 15,
-                pitch: 30
+                maxBounds: bounds,
+                pitch: 30,
+                minZoom: 13
             });
 
             var userLocation = {
@@ -95,10 +102,7 @@ var app = new Vue({
                 unit: 'metric',
                 profile: 'walking',
                 geocoder: {
-                    bbox: [
-                        [-98, 29],
-                        [-97, 31]
-                    ]
+                    bbox: bounds
                 },
                 controls: {
                     inputs: false,
