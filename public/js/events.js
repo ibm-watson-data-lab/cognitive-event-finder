@@ -52,62 +52,157 @@ var app = new Vue({
                 features.push(feature);
             }
             geoj.features = features;
-            // console.log(geoj);
 
-            document.getElementById('map').setAttribute("style", "display:inline");
-            var popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: true });
+            var bounds = [
+                    [-98, 29],
+                    [-97, 31]
+                ] // Austin city bounds
+
             var map = new mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v9",
                 center: [-97.74306, 30.26715],
                 zoom: 15,
-                pitch: 30
+                maxBounds: bounds,
+                minZoom: 12
             });
-            try {
-                map.fitBounds([min, max], { "padding": 12 });
-            } catch (e) {
-                console.log(e)
+
+            var userLocation = {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": []
+                    }
+                }]
             }
 
-            map.addControl(new MapboxDirections({
+            // Austin convention center for demo purposes
+            // Update origin to user locatin as default!
+            var origin = [-97.74046897888182,
+                30.26425663877134
+            ]
+            if (features.length) {
+                if ('geometry' in features[0]) {
+                    var destination = features[0].geometry.coordinates
+                    console.log('used custom destination')
+                }
+            } else {
+                var destination = [-97.74497509002686,
+                    30.270001765380385
+                ]
+                console.log('used default destination')
+            }
+
+            var directions = new MapboxDirections({
                 accessToken: mapboxgl.accessToken,
                 unit: 'metric',
                 profile: 'walking',
                 geocoder: {
-                    bbox: [[-98, 29],[-97, 31]]
+                    bbox: bounds
+                },
+                controls: {
+                    inputs: false,
+                    instructions: true
+                },
+                interactive: false
+            });
+
+            var geolocate = new mapboxgl.GeolocateControl({
+                positionOptions: {
+                    enableHighAccuracy: true,
+                    timeout: 10000, //Poll every 5 seconds
+                    maximumAge: 0
+                },
+                watchPosition: true //Update marker on geolocate
+            });
+
+            geolocate.on('geolocate', function(e) {
+                var user_point = [e.coords.longitude, e.coords.latitude]
+                userLocation.features[0].geometry.coordinates = user_point;
+                updateUserLocation(map, 'user-location', userLocation);
+            });
+
+            map.addControl(geolocate, 'top-right');
+            map.addControl(directions, 'top-left');
+
+            function updateUserLocation(map, sourceName, geojson) {
+
+                if (!map.getSource(sourceName)) {
+                    map.addSource(sourceName, {
+                        type: 'geojson',
+                        data: geojson
+                    });
+
+                    if (!map.getLayer('user-location-point')) {
+                        map.addLayer({
+                            "id": 'user-location-point',
+                            "type": 'circle',
+                            "source": sourceName,
+                            "paint": {
+                                "circle-color": 'blue',
+                                "circle-stroke-width": 2,
+                                "circle-stroke-color": 'black',
+                                "circle-radius": {
+                                    stops: [
+                                        [8, 3],
+                                        [16, 8]
+                                    ]
+                                }
+                            }
+                        })
+                    }
+                } else {
+                    map.getSource(sourceName).setData(userLocation)
                 }
-            }), 'top-left');
+            }
 
             map.on('load', function() {
-                map.addLayer({
-                    "id": "eventslayer",
-                    "type": "circle",
-                    "source": {
-                        "type": "geojson",
-                        "cluster": true,
-                        "clusterMaxZoom": 11,
-                        "clusterRadius": 20,
-                        "data": geoj
-                    },
-                    "paint": {
-                        "circle-radius": 8,
-                        "circle-color": "#ff0000"
-                    }
-                });
+                if (!map.getLayer('eventsLayer')) {
+                    map.addLayer({
+                        "id": "eventslayer",
+                        "type": "circle",
+                        "source": {
+                            "type": "geojson",
+                            "cluster": true,
+                            "clusterMaxZoom": 11,
+                            "clusterRadius": 20,
+                            "data": geoj
+                        },
+                        "paint": {
+                            "circle-radius": 8,
+                            "circle-color": "#ff0000"
+                        }
+                    });
+                }
+                if (!map.getLayer('3d-buildings')) {
+                    map.addLayer({
+                        'id': '3d-buildings',
+                        'source': 'composite',
+                        'source-layer': 'building',
+                        'filter': ['==', 'extrude', 'true'],
+                        'type': 'fill-extrusion',
+                        'minzoom': 15,
+                        'paint': {
+                            'fill-extrusion-color': '#aaa',
+                            'fill-extrusion-height': {
+                                'type': 'identity',
+                                'property': 'height'
+                            },
+                            'fill-extrusion-base': {
+                                'type': 'identity',
+                                'property': 'min_height'
+                            },
+                            'fill-extrusion-opacity': .6
+                        }
+                    });
+                }
             });
 
-            map.on('mousemove', function(e) {
-                var fs = map.queryRenderedFeatures(e.point, { layers: ["eventslayer"] });
-                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) {
-                    popup.remove();
-                    return;
-                };
-                var f = fs[0];
-
-                popuphtml = "<b>" + f.properties.name + "</b><p>" + f.properties.description + "</p>";
-                popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
-            });
+            directions.setOrigin(origin);
+            directions.setDestination(destination);
         }
     }
 });
