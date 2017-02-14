@@ -1,6 +1,10 @@
-#map {
+.map-app {
     width: 100%;
-    height: 736px;
+    height: 100%;
+}
+.map-events {
+    width: 100%;
+    height: 100%;
 }
 .mapboxgl-popup {
     max-width: 396px;
@@ -22,7 +26,7 @@ body,html {
 
 #convo-section {
     position: absolute;
-    top: -60px;
+    top: 30px;
     right: 24px;
     font-size: 9pt;
     padding: 12px;
@@ -38,12 +42,11 @@ body,html {
 #message {
     display: initial;
     width: 85%;
-
 }
 
 #twitter-feed-section {
     position: absolute;
-    bottom: 84px;
+    bottom: 100px;
     left: 48px;
     font-size: 9pt;
     z-index: 4;

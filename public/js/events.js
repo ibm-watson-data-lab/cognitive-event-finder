@@ -131,64 +131,69 @@ var app = new Vue({
                         data: geojson
                     });
 
-                    map.addLayer({
-                        "id": 'user-location-point',
-                        "type": 'circle',
-                        "source": sourceName,
-                        "paint": {
-                            "circle-color": 'blue',
-                            "circle-stroke-width": 2,
-                            "circle-stroke-color": 'black',
-                            "circle-radius": {
-                                stops: [
-                                    [8, 3],
-                                    [16, 8]
-                                ]
+                    if (!map.getLayer('user-location-point')) {
+                        map.addLayer({
+                            "id": 'user-location-point',
+                            "type": 'circle',
+                            "source": sourceName,
+                            "paint": {
+                                "circle-color": 'blue',
+                                "circle-stroke-width": 2,
+                                "circle-stroke-color": 'black',
+                                "circle-radius": {
+                                    stops: [
+                                        [8, 3],
+                                        [16, 8]
+                                    ]
+                                }
                             }
-                        }
-                    })
+                        })
+                    }
                 } else {
                     map.getSource(sourceName).setData(userLocation)
                 }
             }
 
             map.on('load', function() {
-                map.addLayer({
-                    "id": "eventslayer",
-                    "type": "circle",
-                    "source": {
-                        "type": "geojson",
-                        "cluster": true,
-                        "clusterMaxZoom": 11,
-                        "clusterRadius": 20,
-                        "data": geoj
-                    },
-                    "paint": {
-                        "circle-radius": 8,
-                        "circle-color": "#ff0000"
-                    }
-                });
-
-                map.addLayer({
-                    'id': '3d-buildings',
-                    'source': 'composite',
-                    'source-layer': 'building',
-                    'filter': ['==', 'extrude', 'true'],
-                    'type': 'fill-extrusion',
-                    'minzoom': 15,
-                    'paint': {
-                        'fill-extrusion-color': '#aaa',
-                        'fill-extrusion-height': {
-                            'type': 'identity',
-                            'property': 'height'
+                if (!map.getLayer('eventsLayer')) {
+                    map.addLayer({
+                        "id": "eventslayer",
+                        "type": "circle",
+                        "source": {
+                            "type": "geojson",
+                            "cluster": true,
+                            "clusterMaxZoom": 11,
+                            "clusterRadius": 20,
+                            "data": geoj
                         },
-                        'fill-extrusion-base': {
-                            'type': 'identity',
-                            'property': 'min_height'
-                        },
-                        'fill-extrusion-opacity': .6
-                    }
-                });
+                        "paint": {
+                            "circle-radius": 8,
+                            "circle-color": "#ff0000"
+                        }
+                    });
+                }
+                if (!map.getLayer('3d-buildings')) {
+                    map.addLayer({
+                        'id': '3d-buildings',
+                        'source': 'composite',
+                        'source-layer': 'building',
+                        'filter': ['==', 'extrude', 'true'],
+                        'type': 'fill-extrusion',
+                        'minzoom': 15,
+                        'paint': {
+                            'fill-extrusion-color': '#aaa',
+                            'fill-extrusion-height': {
+                                'type': 'identity',
+                                'property': 'height'
+                            },
+                            'fill-extrusion-base': {
+                                'type': 'identity',
+                                'property': 'min_height'
+                            },
+                            'fill-extrusion-opacity': .6
+                        }
+                    });
+                }
             });
 
             directions.setOrigin(origin);
