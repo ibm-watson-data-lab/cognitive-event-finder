@@ -60,11 +60,11 @@ class EventBot {
     }
 
     sendTextMessageToClient(data, message) {
-        this.webSocketBot.sendMessageToClient(data.client, {type: 'msg', text:message});
+        this.webSocketBot.sendMessageToClient(data.client, {type: 'msg', text:message.text, username:message.username});
     }
 
     sendMapMessageToClient(data, message) {
-        this.webSocketBot.sendMessageToClient(data.client, {type: 'map', text:message.text, points:message.points});
+        this.webSocketBot.sendMessageToClient(data.client, {type: 'map', text:message.text, username:message.username, points:message.points});
     }
 
     processMessage(data) {
@@ -136,6 +136,11 @@ class EventBot {
                     if (restart) {
                         this.clearUserState(state);
                     }
+                    // set username after clearing
+                    reply = {
+                        text: reply,
+                        username: state.username
+                    }
                     this.sendTextMessageToClient(data, reply);
                 }
                 else {
@@ -143,6 +148,8 @@ class EventBot {
                     if (restart) {
                         this.clearUserState(state);
                     }
+                    // set username after clearing
+                    reply.username = state.username;
                     this.sendMapMessageToClient(data, reply);
                 }
             })
@@ -168,7 +175,7 @@ class EventBot {
     }
 
     searchReplaceReply(reply, state) {
-        let name = state.name || 'human';
+        let name = state.username || 'human';
         return reply.replace('__Name__', name);
     }
 
@@ -183,7 +190,7 @@ class EventBot {
 
     handleGetNameMessage(state, response, message) {
         this.logDialog(state, "name", "name", {}, false);
-        state.name = message;
+        state.username = message;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -362,7 +369,7 @@ class EventBot {
     }
 
     clearUserState(state) {
-        state.name = null;
+        state.username = null;
         state.lastReply = null;
         state.conversationContext = null;
         state.conversationStarted = false;

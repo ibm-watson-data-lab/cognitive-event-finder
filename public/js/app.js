@@ -14,7 +14,8 @@ var app = new Vue({
         webSocketPingTimer: null,
         message: '',
         messages: [],
-        awaitingResponse: false
+        awaitingResponse: false,
+        username: null
     },
     methods: {
         isMatch: function(msg, strLowers) {
@@ -28,7 +29,7 @@ var app = new Vue({
         },
         submitMessage: function() {
             app.messages.unshift({
-                user: 'The Dude',
+                user: app.username || 'Human',
                 ts: new Date(),
                 key: new Date().getTime() + '',
                 data: {
@@ -96,6 +97,7 @@ var app = new Vue({
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
+                        app.username = data.username;
                         app.messages.unshift({
                             user: botUsername,
                             ts: new Date(),
