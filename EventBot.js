@@ -85,15 +85,16 @@ class EventBot {
             context: state.conversationContext,
             workspace_id: this.conversationWorkspaceId,
         };
+        let restart = false;
         this.sendRequestToConversation(request)
             .then((response) => {
                 state.conversationContext = response.context;
-                let action = state.conversationContext['action']
+                let action = state.conversationContext['action'];
                 if (! action) {
                     action = 'start_search';
                 }
                 if (action == 'start_over') {
-                    state.conversationContext['action'] = null;
+                    restart = true;
                     return this.handleGenericMessage(state, response);
                 }
                 else if (action == 'get_name') {
@@ -115,24 +116,33 @@ class EventBot {
                     return this.handleSpeakerMessage(state, response, message);
                 }
                 else if (action == 'finish_no_text') {
+                    restart = true;
                     return this.handleNoTextMessage(state, response);
                 }
                 else if (action == 'get_phone_number') {
                     return this.handleStartTextMessage(state, response);
                 }
                 else if (action == 'text') {
+                    restart = true;
                     return this.handleTextMessage(state, response, message);
                 }
                 else {
                     return this.handleGenericMessage(state, response);
                 }
-
             })
             .then((reply) => {
                 if ((typeof reply) == 'string') {
-                    this.sendTextMessageToClient(data, this.searchReplaceReply(reply, state));
+                    reply = this.searchReplaceReply(reply, state);
+                    if (restart) {
+                        this.clearUserState(state);
+                    }
+                    this.sendTextMessageToClient(data, reply);
                 }
                 else {
+                    reply.text = this.searchReplaceReply(reply.text, state);
+                    if (restart) {
+                        this.clearUserState(state);
+                    }
                     this.sendMapMessageToClient(data, reply);
                 }
             })
@@ -263,8 +273,6 @@ class EventBot {
 
     handleNoTextMessage(state, response) {
         this.logDialog(state, "no_text", "no_text", {}, false);
-        // clear user state - end of conversation
-        this.clearUserState(state);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
