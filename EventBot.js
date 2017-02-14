@@ -88,40 +88,49 @@ class EventBot {
         this.sendRequestToConversation(request)
             .then((response) => {
                 state.conversationContext = response.context;
-                if (state.conversationContext['is_no_text']) {
-                    return this.handleNoTextMessage(state, response);
+                let action = state.conversationContext['action']
+                if (! action) {
+                    action = 'start_search';
                 }
-                else if (state.conversationContext['is_text']) {
-                    return this.handleTextMessage(state, response, message);
+                if (action == 'start_over') {
+                    state.conversationContext['action'] = null;
+                    return this.handleGenericMessage(state, response);
                 }
-                else if (state.conversationContext['is_start_text']) {
-                    return this.handleStartTextMessage(state, response);
+                else if (action == 'get_name') {
+                    return this.handleGetNameMessage(state, response, message);
                 }
-                else if (state.conversationContext['is_suggestion']) {
-                    return this.handleSuggestionMessage(state, response);
+                else if (action == 'search_suggestion') {
+                    return this.handleSearchSuggestionMessage(state, response);
                 }
-                else if (state.conversationContext['is_topic']) {
-                    return this.handleTopicMessage(state, response, message);
+                else if (action == 'get_topic') {
+                    return this.handleGetTopicMessage(state, response);
                 }
-                else if (state.conversationContext['is_search_topic']) {
-                    return this.handleStartTopicMessage(state, response);
+                else if (action == 'search_topic') {
+                    return this.handleSearchTopicMessage(state, response, message);
                 }
-                else if (state.conversationContext['is_speaker']) {
+                else if (action == 'get_speaker') {
+                    return this.handleGetSpeakerMessage(state, response);
+                }
+                else if (action == 'search_speaker') {
                     return this.handleSpeakerMessage(state, response, message);
                 }
-                else if (state.conversationContext['is_search_speaker']) {
-                    return this.handleStartSpeakerMessage(state, response);
+                else if (action == 'finish_no_text') {
+                    return this.handleNoTextMessage(state, response);
                 }
-                else if (state.conversationContext['is_name']) {
-                    return this.handleNameMessage(state, response, message);
+                else if (action == 'get_phone_number') {
+                    return this.handleStartTextMessage(state, response);
+                }
+                else if (action == 'text') {
+                    return this.handleTextMessage(state, response, message);
                 }
                 else {
-                    return this.handleStartMessage(state, response);
+                    return this.handleGenericMessage(state, response);
                 }
+
             })
             .then((reply) => {
                 if ((typeof reply) == 'string') {
-                    this.sendTextMessageToClient(data, reply);
+                    this.sendTextMessageToClient(data, this.searchReplaceReply(reply, state));
                 }
                 else {
                     this.sendMapMessageToClient(data, reply);
@@ -148,7 +157,12 @@ class EventBot {
         });
     }
 
-    handleStartMessage(state, response) {
+    searchReplaceReply(reply, state) {
+        let name = state.name || 'human';
+        return reply.replace('__Name__', name);
+    }
+
+    handleGenericMessage(state, response) {
         this.logDialog(state, "start", state.userId, null, true);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
@@ -157,18 +171,17 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleNameMessage(state, response, message) {
+    handleGetNameMessage(state, response, message) {
         this.logDialog(state, "name", "name", {}, false);
         state.name = message;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
         }
-        reply = reply.replace('__Name__', state.name);
         return Promise.resolve(reply);
     }
 
-    handleStartSpeakerMessage(state, response) {
+    handleGetSpeakerMessage(state, response) {
         this.logDialog(state, "search_speaker", "search_speaker", {}, false);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
@@ -198,7 +211,7 @@ class EventBot {
             });
     }
 
-    handleStartTopicMessage(state, response) {
+    handleGetTopicMessage(state, response) {
         this.logDialog(state, "search_topic", "search_topic", {}, false);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
@@ -207,7 +220,7 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleTopicMessage(state, response, message) {
+    handleSearchTopicMessage(state, response, message) {
         let topic = message;
         this.logDialog(state, "topic", topic, {}, false);
         var reply = {
@@ -228,7 +241,7 @@ class EventBot {
             });
     }
 
-    handleSuggestionMessage(state, response) {
+    handleSearchSuggestionMessage(state, response) {
         this.logDialog(state, "suggestion", "suggestion", {}, false);
         var reply = {
             text: 'Here is a list of event suggestions for today:\n',
