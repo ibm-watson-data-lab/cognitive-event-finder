@@ -114,6 +114,9 @@ var app = new Vue({
                                 'font-size': '10pt'
                             }
                         });
+                        if (data.type == 'map') {
+                            app.updateMap(data);
+                        }
                     } else if (data.type == 'ping') {
                         console.log('Received ping.');
                     }
@@ -130,37 +133,18 @@ var app = new Vue({
             else {
                 alert("WebSocket not supported browser.");
             }
-        }
-    }
-});
-
-(function() {
-    // Initialize vue app
-    app.init();
-})();
-
-Vue.component('chat-message', {
-    props: ['msg'],
-    render: function(createElement) {
-        return createElement('div', {
-            domProps: {
-                innerHTML: this.msg.data.text
-            }
-        });
-    },
-    mounted: function() {
-        if (this.msg.data.type == 'map') {
+        },
+        updateMap(data) {
             var geoj = {
                 type: "FeatureCollection"
             };
             var features = [];
-            var points = [];
             var point;
             var feature;
             var min = [];
             var max = [];
-            for (var i = 0; i < this.msg.data.points.length; i++) {
-                point = this.msg.data.points[i];
+            for (var i = 0; i < data.points.length; i++) {
+                point = data.points[i];
                 feature = {
                     type: "Feature"
                 };
@@ -197,7 +181,9 @@ Vue.component('chat-message', {
                     if (y > max[1]) max[1] = y;
                 }
 
-                features.push(feature);
+                if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates.length == 2 && feature.geometry.coordinates[0] && feature.geometry.coordinates[1]) {
+                    features.push(feature);
+                }
             }
             geoj.features = features;
 
@@ -257,40 +243,61 @@ Vue.component('chat-message', {
                 console.log(e)
             }
 
+
+            function easing(t) {
+                return t * (5 - t);
+            }
+
             try {
-                function easing(t) {
-                    return t * (5 - t);
-                }
+                map.easeTo({
+                    pitch: 60,
+                    easing: easing
+                });
             } catch (e) {
                 console.log(e)
             }
 
-            map.easeTo({
-                pitch: 60,
-                easing: easing
-            });
-
             map.on('mousemove', function(e) {
-                var fs = map.queryRenderedFeatures(e.point, {
-                    layers: ["eventslayer"]
-                });
-                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) {
-                    popup.remove();
-                    return;
-                };
-                if (fs.length>1) {
-                    popuphtml = "";
-                    fs.forEach(function(f) {
-                        popuphtml += "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
-                    }, this);
-                    popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
-                } else {
-                    var f = fs[0];
-                    popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
-                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                try {
+                    var fs = map.queryRenderedFeatures(e.point, {
+                        layers: ["eventslayer"]
+                    });
+                    map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+                    if (!fs.length) {
+                        popup.remove();
+                        return;
+                    };
+                    if (fs.length>1) {
+                        popuphtml = "";
+                        fs.forEach(function(f) {
+                            popuphtml += "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
+                        }, this);
+                        popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    } else {
+                        var f = fs[0];
+                        popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
+                        popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    }
+                } catch (e) {
+                    console.log(e)
                 }
             });
         }
+    }
+});
+
+(function() {
+    // Initialize vue app
+    app.init();
+})();
+
+Vue.component('chat-message', {
+    props: ['msg'],
+    render: function(createElement) {
+        return createElement('div', {
+            domProps: {
+                innerHTML: this.msg.data.text
+            }
+        });
     }
 });
