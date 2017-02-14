@@ -43,15 +43,11 @@ var app = new Vue({
                     'color': '#929292'
                 }
             });
-            if (!app.webSocketConnected) {
-                app.showOfflineMessage();
-            } else {
-                app.webSocket.send(JSON.stringify({
-                    type: 'msg',
-                    text: app.message
-                }));
-                app.awaitingResponse = true;
-            }
+            app.webSocket.send(JSON.stringify({
+                type: 'msg',
+                text: app.message
+            }));
+            app.awaitingResponse = true;
             app.message = '';
         },
         init() {
@@ -75,6 +71,13 @@ var app = new Vue({
         },
         onTimer() {
             if (!app.webSocketConnected) {
+                if (app.webSocket) {
+                    try {
+                        app.webSocket.close();
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
                 app.connect();
             } else {
                 app.webSocket.send(JSON.stringify({
@@ -89,7 +92,7 @@ var app = new Vue({
                 app.webSocket = new WebSocket(webSocketUrl);
                 app.webSocket.onopen = function() {
                     console.log('Web socket connected.');
-                    app.webSocketConnected = true;
+                    app.webSocketConnected = (app.webSocket.readyState == 1);
                 };
                 app.webSocket.onmessage = function(evt) {
                     app.awaitingResponse = false;
@@ -123,7 +126,8 @@ var app = new Vue({
                     app.webSocketConnected = false;
                     app.webSocket = null;
                 };
-            } else {
+            }
+            else {
                 alert("WebSocket not supported browser.");
             }
         }
