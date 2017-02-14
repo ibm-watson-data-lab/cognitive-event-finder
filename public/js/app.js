@@ -254,18 +254,19 @@ Vue.component('chat-message', {
                 console.log(e)
             }
 
+
+            function easing(t) {
+                return t * (5 - t);
+            }
+
             try {
-                function easing(t) {
-                    return t * (5 - t);
-                }
+                map.easeTo({
+                    pitch: 60,
+                    easing: easing
+                });
             } catch (e) {
                 console.log(e)
             }
-
-            map.easeTo({
-                pitch: 60,
-                easing: easing
-            });
 
             map.on('mousemove', function(e) {
                 var fs = map.queryRenderedFeatures(e.point, {
