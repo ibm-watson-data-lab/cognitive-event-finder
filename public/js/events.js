@@ -53,9 +53,6 @@ var app = new Vue({
             }
             geoj.features = features;
 
-
-            document.getElementById('map').setAttribute("style", "display:inline");
-
             var map = new mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v9",
