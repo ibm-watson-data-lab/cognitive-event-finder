@@ -197,7 +197,9 @@ Vue.component('chat-message', {
                     if (y > max[1]) max[1] = y;
                 }
 
-                features.push(feature);
+                if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates.length == 2 && feature.geometry.coordinates[0] && feature.geometry.coordinates[1]) {
+                    features.push(feature);
+                }
             }
             geoj.features = features;
 
