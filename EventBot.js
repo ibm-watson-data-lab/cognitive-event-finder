@@ -222,7 +222,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<p>Would you like me to text you the results?</p>'
+                reply.text += '<div class="textme">May I text you the results?</div>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -252,7 +252,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<p>Would you like me to text you the results?</p>'
+                reply.text += '<div class="textme">May I text you the results?</div>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -272,7 +272,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<p>Would you like me to text you the results?</p>'
+                reply.text += '<div class="textme">May I text you the results?</div>'
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });

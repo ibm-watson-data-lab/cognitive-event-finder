@@ -29,7 +29,7 @@ var app = new Vue({
         },
         submitMessage: function() {
             app.messages.unshift({
-                user: app.username || 'Human',
+                user: app.username || '<img src="anon_avatar.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
                 data: {
@@ -37,7 +37,7 @@ var app = new Vue({
                     text: app.message
                 },
                 userStyle: {
-                    'float': 'left'
+                    
                 },
                 msgStyle: {
                     'color': '#929292'
@@ -107,7 +107,7 @@ var app = new Vue({
                             key: new Date().getTime() + '',
                             data: data,
                             userStyle: {
-                                'float': 'left'
+                                
                             },
                             msgStyle: {
                                 'color': '#000000',
@@ -202,8 +202,11 @@ var app = new Vue({
                     "type": "circle",
                     "source": 'locations',
                     "paint": {
-                        "circle-radius": 8,
-                        "circle-color": "#ff0000"
+                        "circle-radius": 16,
+                        "circle-color": "#ff0000", 
+                        "circle-opacity": 0.5, 
+                        "circle-stroke-width": 2, 
+                        "circle-stroke-color": "#ff0000"
                     }
                 }, 'events-label');
             }
@@ -228,7 +231,7 @@ var app = new Vue({
                         },
                         'fill-extrusion-opacity': .6
                     }
-                }, 'events-label');
+                }, 'buildings-label');
             }
 
             try {
@@ -264,9 +267,17 @@ var app = new Vue({
                         popup.remove();
                         return;
                     };
-                    var f = fs[0];
-                    popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
-                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    if (fs.length>1) {
+                        popuphtml = "";
+                        fs.forEach(function(f) {
+                            popuphtml += "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
+                        }, this);
+                        popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    } else {
+                        var f = fs[0];
+                        popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
+                        popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    }
                 } catch (e) {
                     console.log(e)
                 }

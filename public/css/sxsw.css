@@ -31,7 +31,7 @@ body,html {
 
 #convo-section {
     position: absolute;
-    top: 30px;
+    top: -50px;
     right: 24px;
     font-size: 9pt;
     padding: 12px;
@@ -49,82 +49,34 @@ body,html {
     width: 85%;
 }
 
-#twitter-feed-section {
-    position: absolute;
-    bottom: 50px;
-    left: 20px;
-    font-size: 9pt;
-    z-index: 4;
-    height: 196px;
-    width: 384px;
-    background-color: rgba(86,168,253,0.55);
-    border-radius: 12px;
-    border: 6px solid #56A8FD;
-    overflow-y: hidden;
-}
-
 .mapboxgl-ctrl-directions {
     height: 500px;
 }
 
-
-.form {
-    /*border: 4px solid gray;
-    border-radius: 18px;
-    padding: 12px;
-    width: 400px;*/
+.msg-user, .msg-chat {
+    display: inline-block;
+    vertical-align: top;
 }
-
 .msg-user {
     padding: 0px 12px 0px 0px;
     font-weight: 700;
+    width: 40px;
+    text-align: center;
 }
-.msg-user-right {
-    float: right;
+.msg-chat {
+    width: 90%;
 }
-.msg-user-left {
-    float: left;
+.msg-chat ul {
+    list-style: initial;
+    padding-left: 2em;
 }
-
 .chat-message {
     margin-top: 8px;
 }
 
-.bubble {
-    position: relative;
-    display: inline-block;
-    width: 400px;
-    min-height: 1.5em;
-    padding: 6px;
-    background: #FFFFFF;
-    border: #7F7F7F solid 4px;
-    -webkit-border-radius: 16px;
-    -moz-border-radius: 16px;
-    border-radius: 16px;
+#sendmessage {
+    padding: 0 1.5em;
 }
-
-.bubble:after {
-    content: "";
-    position: absolute;
-    bottom: -15px;
-    left: 10%;
-    border-style: solid;
-    border-width: 15px 15px 0;
-    border-color: #FFFFFF transparent;
-    display: block;
-    width: 0;
-    z-index: 1;
-}
-
-.bubble:before {
-    content: "";
-    position: absolute;
-    bottom: -19.5px;
-    left: calc(10% - 3px);
-    border-style: solid;
-    border-width: 18px 18px 0;
-    border-color: #7F7F7F transparent;
-    display: block;
-    width: 0;
-    z-index: 0;
+.textme {
+    font-weight: 700;
 }
