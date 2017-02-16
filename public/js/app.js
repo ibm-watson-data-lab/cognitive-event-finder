@@ -60,7 +60,7 @@ var app = new Vue({
 
             map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/streets-v9",
+                style: "mapbox://styles/mapbox/dark-v9",
                 center: [-97.74306, 30.26715],
                 zoom: 15,
                 pitch: 30,
