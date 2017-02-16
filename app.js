@@ -6,9 +6,6 @@ const dotenv = require('dotenv');
 const express = require('express');
 const CloudantEventStore = require('./CloudantEventStore');
 const EventBot = require('./EventBot');
-const GDS = require('ibm-graph-client');
-const GraphDialogStore = require('./GraphDialogStore');
-const MockGraphDialogStore = require('./MockGraphDialogStore');
 const TwilioRestClient = require('twilio').RestClient;
 
 const appEnv = cfenv.getAppEnv();
@@ -16,7 +13,7 @@ const app = express();
 const http = require('http').Server(app);
 
 let cloudantEventStore;
-let graphDialogStore;
+let eventBot;
 
 (function() {
     // load environment variables
@@ -27,20 +24,8 @@ let graphDialogStore;
         plugin:'promises'
     });
     cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_DB_NAME)
-    // graph
-    // let graphUrl = process.env.GRAPH_API_URL || config.credentials.apiURL;
-    // graphUrl = graphUrl.substring(0,graphUrl.lastIndexOf('/')+1) + process.env.GRAPH_ID;
-    // let graphClient = new GDS({
-    //     url: process.env.GRAPH_API_URL || config.credentials.apiURL,
-    //     username: process.env.GRAPH_USERNAME || config.credentials.username,
-    //     password: process.env.GRAPH_PASSWORD || config.credentials.password,
-    // });
-    // let graphDialogStore = new GraphDialogStore(graphClient, process.env.GRAPH_ID);
-    let graphDialogStore = new MockGraphDialogStore();
-    let eventBot = new EventBot(
+    eventBot = new EventBot(
         cloudantEventStore,
-        graphDialogStore,
-        process.env.SPOONACULAR_KEY,
         process.env.CONVERSATION_USERNAME,
         process.env.CONVERSATION_PASSWORD,
         process.env.CONVERSATION_WORKSPACE_ID,
@@ -59,7 +44,7 @@ app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 
 // map requests
-app.get('/', function(req, res) {
+app.get('/', (req, res) => {
     res.render('index.ejs', {
         webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
@@ -67,7 +52,7 @@ app.get('/', function(req, res) {
 });
 
 // map requests
-app.get('/events', function(req, res) {
+app.get('/events', (req, res) => {
     let promise;
     let ids = req.query.ids;
     if (ids) {
@@ -87,6 +72,43 @@ app.get('/events', function(req, res) {
             mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
         });
     });
+});
+
+app.get('/sms', (req, res) => {
+    let data = {
+        user: req.query.From,
+        text: req.query.Body
+    };
+    eventBot.processMessage(data)
+        .then((reply) => {
+            res.setHeader('Content-Type', 'text/plain');
+            if (reply.points) {
+                // clear user state
+                eventBot.clearUserStateForUser(data.user);
+                // send
+                let body = eventBot.baseUrl + '/events';
+                if (reply.points && reply.points.length > 0) {
+                    body += '?ids=';
+                    let first = true;
+                    for(var point of reply.points) {
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            body += '%2C';
+                        }
+                        body += point._id;
+                    }
+                }
+                res.send(body);
+            }
+            else {
+                res.send(reply.text);
+            }
+        })
+        .catch((err) => {
+            console.log(`Error: ${err}`);
+        });
 });
 
 // start server on the specified port and binding host
