@@ -80,3 +80,27 @@ body,html {
 .textme {
     font-weight: 700;
 }
+
+#opensource-section {
+    position: absolute;
+    bottom: 36px;
+    left: 10px;
+    font-size: 9pt;
+    font-weight: 900;
+    z-index: 4;
+    height: 48px;
+    width: 212px;
+    background-color: rgba(55,55,55,0.55);
+    border-radius: 12px;
+    border: 2px solid #666;
+    line-height: normal;
+    padding-top: 4px;
+}
+#opensource-section a {
+    color: #fff;
+}
+
+#ghmark {
+    float: left;
+    padding: 4px 4px 12px 4px;
+}
