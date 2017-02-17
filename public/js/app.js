@@ -197,6 +197,19 @@ var app = new Vue({
             }
 
             if (!map.getLayer('eventsLayer')) {
+                // map.addLayer({
+                //     "id": "eventslayer",
+                //     "type": "symbol",
+                //     "source": 'locations',
+                //     "layout": {
+                //         "color": "#FF0000",
+                //         "icon-image": "marker-11", 
+                //         "icon-size": 3, 
+                //         "text-field": "{name}", 
+                //         "text-size": 10,
+                //         "text-offset": [0,-1]
+                //     }
+                // }, 'events-label');
                 map.addLayer({
                     "id": "eventslayer",
                     "type": "circle",
@@ -275,7 +288,10 @@ var app = new Vue({
                         popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
                     } else {
                         var f = fs[0];
-                        popuphtml = "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description + "</p>";
+                        popuphtml = "<div class='popup-title'>" + f.properties.name + "</div><div>";
+                        if (f.properties.img_url && f.properties.img_url != 'undefined')
+                            popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
+                        popuphtml += f.properties.description + "</div>";
                         popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
                     }
                 } catch (e) {

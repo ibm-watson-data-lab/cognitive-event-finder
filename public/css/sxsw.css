@@ -17,6 +17,12 @@
     font-weight: 500;
     font-size: 12pt;
 }
+.popup-image {
+    height: 84px;
+    float: left;
+    padding: 2px 4px 4px 0px;
+    border-radius: 12px 0 12px 0;
+}
 .app-banner {
     background-color: #666;
     font: normal normal 700 42px 'Roboto', sans-serif;;
