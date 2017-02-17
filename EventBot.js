@@ -18,8 +18,7 @@ class EventBot {
         this.conversationWorkspaceId = conversationWorkspaceId;
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
-        this.demoClient = null;
-        this.demoClientPhoneNumber = null;
+        this.demoClients = {};
     }
 
     run() {
@@ -39,6 +38,14 @@ class EventBot {
         this.webSocketBot.on('start', () => {
             console.log('Web socket is connected and running!')
         });
+        this.webSocketBot.on('disconnect', (client) => {
+            for (let key in this.demoClients) {
+                if (this.demoClients[key] == client) {
+                    delete this.demoClients[key];
+                    break;
+                }
+            }
+        });
         this.webSocketBot.on('message', (client, msg) => {
             if (msg.type == 'msg') {
                 let data = {
@@ -57,9 +64,8 @@ class EventBot {
                     });
             }
             else if (msg.type == 'ping') {
-                if (msg.demo) {
-                    this.demoClient = client;
-                    this.demoClientPhoneNumber = msg.demoPhoneNumber;
+                if (msg.demo && msg.demoPhoneNumber) {
+                    this.demoClients[msg.demoPhoneNumber] = client;
                 }
                 this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
             }
@@ -67,12 +73,12 @@ class EventBot {
     }
 
     sendMessageToClientIfDemoPhoneNumber(reply, phoneNumber) {
-        if (this.demoClient && this.demoClientPhoneNumber == phoneNumber) {
+        if (this.demoClients[phoneNumber]) {
             if (reply.points) {
-                this.sendMapMessageToClient(this.demoClient, reply);
+                this.sendMapMessageToClient(this.demoClients[phoneNumber], reply);
             }
             else {
-                this.sendTextMessageToClient(this.demoClient, reply);
+                this.sendTextMessageToClient(this.demoClients[phoneNumber], reply);
             }
         }
     }
