@@ -18,6 +18,8 @@ class EventBot {
         this.conversationWorkspaceId = conversationWorkspaceId;
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
+        this.demoClient = null;
+        this.demoClientPhoneNumber = null;
     }
 
     run() {
@@ -47,25 +49,40 @@ class EventBot {
                 this.processMessage(data)
                     .then((reply) => {
                         if (reply.points) {
-                            this.sendMapMessageToClient(data, reply);
+                            this.sendMapMessageToClient(data.client, reply);
                         }
                         else {
-                            this.sendTextMessageToClient(data, reply);
+                            this.sendTextMessageToClient(data.client, reply);
                         }
                     });
             }
             else if (msg.type == 'ping') {
+                if (msg.demo) {
+                    this.demoClient = client;
+                    this.demoClientPhoneNumber = msg.demoPhoneNumber;
+                }
                 this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
             }
         });
     }
 
-    sendTextMessageToClient(data, message) {
-        this.webSocketBot.sendMessageToClient(data.client, {type: 'msg', text:message.text, username:message.username});
+    sendMessageToClientIfDemoPhoneNumber(reply, phoneNumber) {
+        if (this.demoClient && this.demoClientPhoneNumber == phoneNumber) {
+            if (reply.points) {
+                this.sendMapMessageToClient(this.demoClient, reply);
+            }
+            else {
+                this.sendTextMessageToClient(this.demoClient, reply);
+            }
+        }
     }
 
-    sendMapMessageToClient(data, message) {
-        this.webSocketBot.sendMessageToClient(data.client, {type: 'map', text:message.text, username:message.username, points:message.points});
+    sendTextMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username});
+    }
+
+    sendMapMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
     }
 
     processMessage(data) {
