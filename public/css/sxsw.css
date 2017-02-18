@@ -20,10 +20,6 @@
     border-radius: 12px 0 12px 0;
 }
 .app-banner {
-<<<<<<< HEAD
-    background-color: rgba(0,0,0,0.75);
-    font: normal normal 700 32px 'Roboto', sans-serif;;
-=======
     background-image: url(../img/ibm_glyph.png);
     background-origin: border-box;
     background-size: 15%;
@@ -31,7 +27,6 @@
     background-repeat: no-repeat;
     background-color: #000;
     font: normal normal 700 42px 'Lato', sans-serif;;
->>>>>>> 740eaba84777da5b05aa24e4e4d42a8efdcd51a7
     color: #FFF;
 }
 .app-banner-bg {
