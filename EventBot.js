@@ -18,6 +18,7 @@ class EventBot {
         this.conversationWorkspaceId = conversationWorkspaceId;
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
+        this.demoClients = {};
     }
 
     run() {
@@ -37,6 +38,14 @@ class EventBot {
         this.webSocketBot.on('start', () => {
             console.log('Web socket is connected and running!')
         });
+        this.webSocketBot.on('disconnect', (client) => {
+            for (let key in this.demoClients) {
+                if (this.demoClients[key] == client) {
+                    delete this.demoClients[key];
+                    break;
+                }
+            }
+        });
         this.webSocketBot.on('message', (client, msg) => {
             if (msg.type == 'msg') {
                 let data = {
@@ -47,25 +56,39 @@ class EventBot {
                 this.processMessage(data)
                     .then((reply) => {
                         if (reply.points) {
-                            this.sendMapMessageToClient(data, reply);
+                            this.sendMapMessageToClient(data.client, reply);
                         }
                         else {
-                            this.sendTextMessageToClient(data, reply);
+                            this.sendTextMessageToClient(data.client, reply);
                         }
                     });
             }
             else if (msg.type == 'ping') {
+                if (msg.demo && msg.demoPhoneNumber) {
+                    this.demoClients[msg.demoPhoneNumber] = client;
+                }
                 this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
             }
         });
     }
 
-    sendTextMessageToClient(data, message) {
-        this.webSocketBot.sendMessageToClient(data.client, {type: 'msg', text:message.text, username:message.username});
+    sendMessageToClientIfDemoPhoneNumber(reply, phoneNumber) {
+        if (this.demoClients[phoneNumber]) {
+            if (reply.points) {
+                this.sendMapMessageToClient(this.demoClients[phoneNumber], reply);
+            }
+            else {
+                this.sendTextMessageToClient(this.demoClients[phoneNumber], reply);
+            }
+        }
     }
 
-    sendMapMessageToClient(data, message) {
-        this.webSocketBot.sendMessageToClient(data.client, {type: 'map', text:message.text, username:message.username, points:message.points});
+    sendTextMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username});
+    }
+
+    sendMapMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
     }
 
     processMessage(data) {

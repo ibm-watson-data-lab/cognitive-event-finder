@@ -47,7 +47,9 @@ app.set('view engine', 'ejs');
 app.get('/', (req, res) => {
     res.render('index.ejs', {
         webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
-        mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
+        mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
+        demo: req.query.demo || 'false',
+        demoPhoneNumber: req.query.phone || ''
     });
 });
 
@@ -82,6 +84,7 @@ app.get('/sms', (req, res) => {
     eventBot.processMessage(data)
         .then((reply) => {
             res.setHeader('Content-Type', 'text/plain');
+            eventBot.sendMessageToClientIfDemoPhoneNumber(reply, data.user);
             if (reply.points) {
                 // clear user state
                 eventBot.clearUserStateForUser(data.user);
