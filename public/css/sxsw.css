@@ -24,13 +24,22 @@
     border-radius: 12px 0 12px 0;
 }
 .app-banner {
-    background-color: #666;
-    font: normal normal 700 42px 'Roboto', sans-serif;;
+    background-image: url(../img/ibm_glyph.png);
+    background-origin: border-box;
+    background-size: 15%;
+    background-position: right;
+    background-repeat: no-repeat;
+    background-color: #000;
+    font: normal normal 700 42px 'Lato', sans-serif;;
     color: #FFF;
+}
+.app-banner-bg {
+    float: right;
+    height: 48px;
 }
 
 body,html {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Lato', sans-serif;
     margin:0; 
     padding:0;
 }
@@ -46,7 +55,7 @@ body,html {
     width: 512px;
     background-color: rgba(255,255,255,0.85);
     border-radius: 12px;
-    border: 6px solid #DD1F80;
+    border: 6px solid #CB9E61; /*#DD1F80;*/
     overflow-y: auto;
 }
 
