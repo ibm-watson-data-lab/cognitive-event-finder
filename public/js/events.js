@@ -60,11 +60,12 @@ var app = new Vue({
 
             var map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/streets-v9",
+                style: "mapbox://styles/mapbox/dark-v9",
                 center: [-97.74306, 30.26715],
                 zoom: 15,
                 maxBounds: bounds,
-                minZoom: 12
+                minZoom: 15,
+                pitch: 60
             });
 
             var userLocation = {
@@ -197,7 +198,7 @@ var app = new Vue({
                             },
                             'fill-extrusion-opacity': .6
                         }
-                    });
+                    }, 'buildings-label');
                 }
             });
 
