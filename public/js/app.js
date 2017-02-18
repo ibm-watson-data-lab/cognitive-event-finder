@@ -1,4 +1,4 @@
-var botUsername = '<img src="watson_avatar_new.png">'; //'bot';
+var botUsername = '<img src="img/watson_avatar_new.png">'; //'bot';
 var popup = new mapboxgl.Popup({
     closeButton: false,
     closeOnClick: true
@@ -29,7 +29,7 @@ var app = new Vue({
         },
         submitMessage: function() {
             app.messages.unshift({
-                user: app.username || '<img src="anon_avatar.png">',
+                user: app.username || '<img src="img/anon_avatar.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
                 data: {
@@ -261,13 +261,14 @@ var app = new Vue({
                 }, 'buildings-label');
             }
 
-            try {
-                //If no results are returned, don't fail on fitBounds()
-                map.fitBounds([min, max], {
-                    "padding": 256
-                });
-            } catch (e) {
-                console.log(e)
+            if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
+                try {
+                    map.fitBounds([min, max], {
+                        "padding": 256
+                    });
+                } catch (e) {
+                    console.log(e)
+                }
             }
 
 

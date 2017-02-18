@@ -20,9 +20,23 @@
     border-radius: 12px 0 12px 0;
 }
 .app-banner {
+<<<<<<< HEAD
     background-color: rgba(0,0,0,0.75);
     font: normal normal 700 32px 'Roboto', sans-serif;;
+=======
+    background-image: url(../img/ibm_glyph.png);
+    background-origin: border-box;
+    background-size: 15%;
+    background-position: right;
+    background-repeat: no-repeat;
+    background-color: #000;
+    font: normal normal 700 42px 'Lato', sans-serif;;
+>>>>>>> 740eaba84777da5b05aa24e4e4d42a8efdcd51a7
     color: #FFF;
+}
+.app-banner-bg {
+    float: right;
+    height: 48px;
 }
 
 /* Dark attribution */
@@ -49,8 +63,12 @@
 }
 
 body,html {
+<<<<<<< HEAD
     font-family: 'Roboto', sans-serif;
     background-color: rgba(0,0,0,0.75) !important;
+=======
+    font-family: 'Lato', sans-serif;
+>>>>>>> 740eaba84777da5b05aa24e4e4d42a8efdcd51a7
     margin:0; 
     padding:0;
 }
@@ -66,7 +84,7 @@ body,html {
     width: 512px;
     background-color: rgba(255,255,255,0.85);
     border-radius: 12px;
-    border: 6px solid #DD1F80;
+    border: 6px solid #CB9E61; /*#DD1F80;*/
     overflow-y: auto;
 }
 
