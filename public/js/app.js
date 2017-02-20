@@ -37,7 +37,7 @@ var app = new Vue({
                     text: app.message
                 },
                 userStyle: {
-                    
+
                 },
                 msgStyle: {
                     'color': '#929292'
@@ -63,9 +63,34 @@ var app = new Vue({
                 style: "mapbox://styles/mapbox/dark-v9",
                 center: [-97.74306, 30.26715],
                 zoom: 15,
-                pitch: 30,
-                minZoom: 12
+                pitch: 60,
+                minZoom: 15
             });
+
+            map.on('load', function() {
+                if (!map.getLayer('3d-buildings')) {
+                    map.addLayer({
+                        'id': '3d-buildings',
+                        'source': 'composite',
+                        'source-layer': 'building',
+                        'filter': ['==', 'extrude', 'true'],
+                        'type': 'fill-extrusion',
+                        'minzoom': 15,
+                        'paint': {
+                            'fill-extrusion-color': '#aaa',
+                            'fill-extrusion-height': {
+                                'type': 'identity',
+                                'property': 'height'
+                            },
+                            'fill-extrusion-base': {
+                                'type': 'identity',
+                                'property': 'min_height'
+                            },
+                            'fill-extrusion-opacity': .6
+                        }
+                    }, 'buildings-label');
+                }
+            })
 
             setTimeout(app.onTimer, 1);
         },
@@ -79,8 +104,7 @@ var app = new Vue({
                     }
                 }
                 app.connect();
-            }
-            else {
+            } else {
                 app.webSocket.send(JSON.stringify({
                     type: 'ping',
                     demo: demo,
@@ -110,7 +134,7 @@ var app = new Vue({
                             key: new Date().getTime() + '',
                             data: data,
                             userStyle: {
-                                
+
                             },
                             msgStyle: {
                                 'color': '#000000',
@@ -132,8 +156,7 @@ var app = new Vue({
                     app.webSocketConnected = false;
                     app.webSocket = null;
                 };
-            }
-            else {
+            } else {
                 alert("WebSocket not supported browser.");
             }
         },
@@ -200,28 +223,16 @@ var app = new Vue({
             }
 
             if (!map.getLayer('eventsLayer')) {
-                // map.addLayer({
-                //     "id": "eventslayer",
-                //     "type": "symbol",
-                //     "source": 'locations',
-                //     "layout": {
-                //         "color": "#FF0000",
-                //         "icon-image": "marker-11", 
-                //         "icon-size": 3, 
-                //         "text-field": "{name}", 
-                //         "text-size": 10,
-                //         "text-offset": [0,-1]
-                //     }
-                // }, 'events-label');
+
                 map.addLayer({
                     "id": "eventslayer",
                     "type": "circle",
                     "source": 'locations',
                     "paint": {
                         "circle-radius": 16,
-                        "circle-color": "#ff0000", 
-                        "circle-opacity": 0.5, 
-                        "circle-stroke-width": 2, 
+                        "circle-color": "#ff0000",
+                        "circle-opacity": 0.5,
+                        "circle-stroke-width": 2,
                         "circle-stroke-color": "#ff0000"
                     }
                 }, 'events-label');
@@ -284,7 +295,7 @@ var app = new Vue({
                         popup.remove();
                         return;
                     };
-                    if (fs.length>1) {
+                    if (fs.length > 1) {
                         popuphtml = "";
                         fs.forEach(function(f) {
                             popuphtml += "<span class='popup-title'>" + f.properties.name + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
