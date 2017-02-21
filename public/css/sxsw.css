@@ -50,6 +50,7 @@
 .mapboxgl-popup-content {
   background-color:#202020 !important;
   color:#fff;
+  z-index: 2;
   }
 .mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip,
