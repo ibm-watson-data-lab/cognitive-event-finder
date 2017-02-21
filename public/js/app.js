@@ -62,7 +62,7 @@ var app = new Vue({
                 container: "map",
                 style: "mapbox://styles/mapbox/dark-v9",
                 center: [-97.74306, 30.26715],
-                zoom: 15,
+                zoom: 12,
                 pitch: 60,
                 minZoom: 15
             });
@@ -271,23 +271,11 @@ var app = new Vue({
                 }
             }
 
-
-            function easing(t) {
-                return t * (5 - t);
-            }
-
-            try {
-                map.easeTo({
-                    pitch: 60,
-                    easing: easing
-                });
-            } catch (e) {
-                console.log(e)
-            }
-
             map.on('mousemove', function(e) {
                 try {
-                    var fs = map.queryRenderedFeatures(e.point, {
+                    minpoint = new Array(e.point['x'] - 5, e.point['y'] - 5)
+                    maxpoint = new Array(e.point['x'] + 5, e.point['y'] + 5)
+                    var fs = map.queryRenderedFeatures([minpoint, maxpoint],, {
                         layers: ["eventslayer"]
                     });
                     map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
