@@ -85,9 +85,9 @@ app.get('/control', (req, res) => {
             user: phoneNumber,
             text: 'hi'
         };
+        eventBot.clearUserStateForUser(data.user);
         eventBot.processMessage(data, {skip_name: true})
             .then((reply) => {
-                eventBot.clearUserStateForUser(data.user);
                 eventBot.sendMessageToClientId(clientIdsByPhoneNumber[data.user], reply);
                 return eventBot.sendTextMessage(phoneNumber, reply.text);
             })
@@ -95,7 +95,7 @@ app.get('/control', (req, res) => {
                 res.send('OK');
             })
             .catch((err) => {
-                console.log(`Error: ${err}`);
+                res.send(`Error: ${err}`);
             });
     }
     else if (clientId) {
@@ -104,6 +104,7 @@ app.get('/control', (req, res) => {
                 delete clientIdsByPhoneNumber[key];
             }
         }
+        res.send('OK');
     }
 
 });
