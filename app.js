@@ -88,7 +88,7 @@ app.get('/control', (req, res) => {
         eventBot.clearUserStateForUser(data.user);
         eventBot.processMessage(data, {skip_name: true})
             .then((reply) => {
-                eventBot.sendOutputMessageToClientId(clientIdsByPhoneNumber[data.user], reply);
+                eventBot.sendOutputMessageToClientId(clientId, reply);
                 return eventBot.sendTextMessage(phoneNumber, reply.text);
             })
             .then(() => {
