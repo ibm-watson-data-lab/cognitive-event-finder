@@ -428,7 +428,10 @@ class EventBot {
     }
 
     clearUserStateForUser(userId) {
-        this.clearUserState(this.userStateMap[userId]);
+        const state = this.userStateMap[userId];
+        if (state) {
+            this.clearUserState(state);
+        }
     }
 }
 
