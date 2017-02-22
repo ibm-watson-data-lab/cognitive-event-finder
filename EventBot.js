@@ -234,7 +234,7 @@ class EventBot {
         let speaker = message;
         this.logDialog(state, "search_speaker", speaker, {}, false);
         let reply = {
-            text: '<b>Here is a list of events happening today:</b><br/>',
+            text: '<b>Here are events featuring this speaker today:</b><br/>',
             points: []
         };
         return this.eventStore.findEventsBySpeaker(speaker, 5)
