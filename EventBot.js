@@ -73,7 +73,15 @@ class EventBot {
         });
     }
 
-    sendMessageToClientId(clientId, message) {
+    sendTextMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username});
+    }
+
+    sendMapMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
+    }
+
+    sendOutputMessageToClientId(clientId, message) {
         if (this.clientsById[clientId]) {
             if (message.points) {
                 this.sendMapMessageToClient(this.clientsById[clientId], message);
@@ -84,12 +92,10 @@ class EventBot {
         }
     }
 
-    sendTextMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username});
-    }
-
-    sendMapMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
+    sendInputMessageToClientId(clientId, text, username) {
+        if (this.clientsById[clientId]) {
+            this.webSocketBot.sendMessageToClient(this.clientsById[clientId], {type: 'input', text:text, username:username});
+        }
     }
 
     processMessage(data, contextVars) {

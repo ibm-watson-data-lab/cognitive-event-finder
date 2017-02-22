@@ -14,7 +14,6 @@ var app = new Vue({
         webSocketPingTimer: null,
         message: '',
         messages: [],
-        awaitingResponse: false,
         username: null
     },
     methods: {
@@ -47,7 +46,6 @@ var app = new Vue({
                 type: 'msg',
                 text: app.message
             }));
-            app.awaitingResponse = true;
             app.message = '';
         },
         init() {
@@ -121,7 +119,6 @@ var app = new Vue({
                     app.webSocketConnected = (app.webSocket.readyState == 1);
                 };
                 app.webSocket.onmessage = function(evt) {
-                    app.awaitingResponse = false;
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
@@ -143,15 +140,31 @@ var app = new Vue({
                         if (data.type == 'map') {
                             app.updateMap(data);
                         }
-                    } else if (data.type == 'ping') {
+                    }
+                    else if (data.type == 'input') {
+                        app.username = data.username;
+                        app.messages.unshift({
+                            user: app.username || '<img src="img/anon_avatar.png">',
+                            ts: new Date(),
+                            key: new Date().getTime() + '',
+                            data: {
+                                type: 'msg',
+                                text: data.text
+                            },
+                            userStyle: {
+                            },
+                            msgStyle: {
+                                'color': '#929292'
+                            }
+                        });
+                        app.message = '';
+                    }
+                    else if (data.type == 'ping') {
                         console.log('Received ping.');
                     }
                 };
                 app.webSocket.onclose = function() {
                     console.log('Websocket closed.');
-                    if (app.awaitingResponse) {
-                        app.awaitingResponse = false;
-                    }
                     app.webSocketConnected = false;
                     app.webSocket = null;
                 };

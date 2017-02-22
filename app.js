@@ -88,8 +88,8 @@ app.get('/control', (req, res) => {
         eventBot.clearUserStateForUser(data.user);
         eventBot.processMessage(data, {skip_name: true})
             .then((reply) => {
-                eventBot.sendMessageToClientId(clientIdsByPhoneNumber[data.user], reply);
-                return eventBot.sendTextMessage(phoneNumber, reply.text);
+                eventBot.sendOutputMessageToClientId(clientIdsByPhoneNumber[data.user], reply);
+                //return eventBot.sendTextMessage(phoneNumber, reply.text);
             })
             .then(() => {
                 res.send('OK');
@@ -114,11 +114,16 @@ app.get('/sms', (req, res) => {
         user: req.query.From,
         text: req.query.Body
     };
+    const clientId = clientIdsByPhoneNumber[data.user];
+    if (clientId) {
+        const username = data.user.substring(1,5) + '*';
+        eventBot.sendInputMessageToClientId(clientIdsByPhoneNumber[data.user], data.text, username);
+    }
     eventBot.processMessage(data, {skip_name: true})
         .then((reply) => {
             res.setHeader('Content-Type', 'text/plain');
-            if (clientIdsByPhoneNumber[data.user]) {
-                eventBot.sendMessageToClientId(clientIdsByPhoneNumber[data.user], reply);
+            if (clientId) {
+                eventBot.sendOutputMessageToClientId(clientId, reply);
             }
             if (reply.points) {
                 // clear user state
