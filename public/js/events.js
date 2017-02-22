@@ -64,8 +64,8 @@ var app = new Vue({
                 center: [-97.74306, 30.26715],
                 zoom: 15,
                 maxBounds: bounds,
-                minZoom: 15,
-                pitch: 60
+                minZoom: 12,
+                pitch: 30
             });
 
             var userLocation = {
@@ -161,31 +161,33 @@ var app = new Vue({
             }
 
             map.on('load', function() {
+
+                if (!map.getSource('buildings')) {
+                    map.addSource('buildings', {
+                        type: 'vector',
+                        url: 'mapbox://rsbaumann.4url3cm7'
+                    });
+                }
+
                 if (!map.getLayer('eventsLayer')) {
                     map.addLayer({
                         "id": "eventslayer",
-                        "type": "circle",
+                        "type": "symbol",
                         "source": {
                             "type": "geojson",
-                            "cluster": true,
-                            "clusterMaxZoom": 11,
-                            "clusterRadius": 20,
                             "data": geoj
                         },
-                        "paint": {
-                            "circle-radius": 8,
-                            "circle-color": "#ff0000"
+                        "layout": {
+                            "icon-image": '{marker-15}'
                         }
                     });
                 }
                 if (!map.getLayer('3d-buildings')) {
                     map.addLayer({
                         'id': '3d-buildings',
-                        'source': 'composite',
-                        'source-layer': 'building',
-                        'filter': ['==', 'extrude', 'true'],
+                        'source': 'buildings',
+                        'source-layer': 'austinbuildings',
                         'type': 'fill-extrusion',
-                        'minzoom': 15,
                         'paint': {
                             'fill-extrusion-color': '#aaa',
                             'fill-extrusion-height': {
