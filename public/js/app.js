@@ -224,14 +224,10 @@ var app = new Vue({
 
                 map.addLayer({
                     "id": "eventslayer",
-                    "type": "circle",
+                    "type": "symbol",
                     "source": 'locations',
-                    "paint": {
-                        "circle-radius": 16,
-                        "circle-color": "#ff0000",
-                        "circle-opacity": 0.5,
-                        "circle-stroke-width": 2,
-                        "circle-stroke-color": "#ff0000"
+                    "layout": {
+                        "icon-image": "marker-15"
                     }
                 }, 'events-label');
             }
