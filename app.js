@@ -14,6 +14,7 @@ const http = require('http').Server(app);
 
 let cloudantEventStore;
 let eventBot;
+let clientIdsByPhoneNumber = {};
 
 (function() {
     // load environment variables
@@ -48,8 +49,7 @@ app.get('/', (req, res) => {
     res.render('index.ejs', {
         webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
-        demo: req.query.demo || 'false',
-        demoPhoneNumber: req.query.phone || ''
+        clientId: req.query.clientId
     });
 });
 
@@ -76,15 +76,55 @@ app.get('/events', (req, res) => {
     });
 });
 
+app.get('/control', (req, res) => {
+    const clientId = req.query.clientId;
+    const phoneNumber = req.query.phone;
+    if (phoneNumber) {
+        clientIdsByPhoneNumber[phoneNumber] = clientId;
+        let data = {
+            user: phoneNumber,
+            text: 'hi'
+        };
+        eventBot.clearUserStateForUser(data.user);
+        eventBot.processMessage(data, {skip_name: true})
+            .then((reply) => {
+                eventBot.sendOutputMessageToClientId(clientId, reply);
+                return eventBot.sendTextMessage(phoneNumber, reply.text);
+            })
+            .then(() => {
+                res.send('OK');
+            })
+            .catch((err) => {
+                res.send(`Error: ${err}`);
+            });
+    }
+    else if (clientId) {
+        for(let key in clientIdsByPhoneNumber) {
+            if (clientIdsByPhoneNumber[key] == clientId) {
+                delete clientIdsByPhoneNumber[key];
+            }
+        }
+        res.send('OK');
+    }
+
+});
+
 app.get('/sms', (req, res) => {
     let data = {
         user: req.query.From,
         text: req.query.Body
     };
-    eventBot.processMessage(data)
+    const clientId = clientIdsByPhoneNumber[data.user];
+    if (clientId) {
+        const username = data.user.substring(1,5) + '*';
+        eventBot.sendInputMessageToClientId(clientIdsByPhoneNumber[data.user], data.text, username);
+    }
+    eventBot.processMessage(data, {skip_name: true})
         .then((reply) => {
             res.setHeader('Content-Type', 'text/plain');
-            eventBot.sendMessageToClientIfDemoPhoneNumber(reply, data.user);
+            if (clientId) {
+                eventBot.sendOutputMessageToClientId(clientId, reply);
+            }
             if (reply.points) {
                 // clear user state
                 eventBot.clearUserStateForUser(data.user);
