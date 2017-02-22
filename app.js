@@ -89,7 +89,7 @@ app.get('/control', (req, res) => {
         eventBot.processMessage(data, {skip_name: true})
             .then((reply) => {
                 eventBot.sendOutputMessageToClientId(clientIdsByPhoneNumber[data.user], reply);
-                //return eventBot.sendTextMessage(phoneNumber, reply.text);
+                return eventBot.sendTextMessage(phoneNumber, reply.text);
             })
             .then(() => {
                 res.send('OK');
