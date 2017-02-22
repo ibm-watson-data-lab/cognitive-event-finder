@@ -107,8 +107,7 @@ var app = new Vue({
             } else {
                 app.webSocket.send(JSON.stringify({
                     type: 'ping',
-                    demo: demo,
-                    demoPhoneNumber: demoPhoneNumber
+                    clientId: clientId
                 }));
             }
             setTimeout(app.onTimer, 5000);

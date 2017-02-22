@@ -18,7 +18,8 @@ class EventBot {
         this.conversationWorkspaceId = conversationWorkspaceId;
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
-        this.demoClients = {};
+        this.clientsById = {};
+        this.defaultUserName = 'human';
     }
 
     run() {
@@ -39,9 +40,9 @@ class EventBot {
             console.log('Web socket is connected and running!')
         });
         this.webSocketBot.on('disconnect', (client) => {
-            for (let key in this.demoClients) {
-                if (this.demoClients[key] == client) {
-                    delete this.demoClients[key];
+            for (let key in this.clientsById) {
+                if (this.clientsById[key] == client) {
+                    delete this.clientsById[key];
                     break;
                 }
             }
@@ -64,21 +65,21 @@ class EventBot {
                     });
             }
             else if (msg.type == 'ping') {
-                if (msg.demo && msg.demoPhoneNumber) {
-                    this.demoClients[msg.demoPhoneNumber] = client;
+                if (msg.clientId) {
+                    this.clientsById[msg.clientId] = client;
                 }
                 this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
             }
         });
     }
 
-    sendMessageToClientIfDemoPhoneNumber(reply, phoneNumber) {
-        if (this.demoClients[phoneNumber]) {
-            if (reply.points) {
-                this.sendMapMessageToClient(this.demoClients[phoneNumber], reply);
+    sendMessageToClientId(clientId, message) {
+        if (this.clientsById[clientId]) {
+            if (message.points) {
+                this.sendMapMessageToClient(this.clientsById[clientId], message);
             }
             else {
-                this.sendTextMessageToClient(this.demoClients[phoneNumber], reply);
+                this.sendTextMessageToClient(this.clientsById[clientId], message);
             }
         }
     }
@@ -91,7 +92,7 @@ class EventBot {
         this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
     }
 
-    processMessage(data) {
+    processMessage(data, contextVars) {
         // get or create state for the user
         let message = data.text;
         let messageSender = data.user;
@@ -99,9 +100,16 @@ class EventBot {
         if (!state) {
             state = {
                 userId: messageSender,
+                conversationContext: {},
                 dialogQueue: []
             };
             this.userStateMap[messageSender] = state;
+        }
+        // add additional contextVars
+        if (contextVars) {
+            for (let key in contextVars) {
+                state.conversationContext[key] = contextVars[key];
+            }
         }
         // make call to conversation service
         let request = {
@@ -120,6 +128,9 @@ class EventBot {
                 if (action == 'start_over') {
                     restart = true;
                     return this.handleGenericMessage(state, response);
+                }
+                else if (action == 'skip_name') {
+                    return this.handleSkipNameMessage(state, response, message);
                 }
                 else if (action == 'get_name') {
                     return this.handleGetNameMessage(state, response, message);
@@ -177,9 +188,13 @@ class EventBot {
                 return Promise.resolve(reply);
             })
             .catch((err) => {
-                console.log(`Error: ${err}`);
+                console.log(`Error: ${JSON.stringify(err)}`);
                 this.clearUserState(state);
-                const reply = "Sorry, something went wrong! Say anything to me to start over...";
+                const reply = {
+                    text: 'Sorry, something went wrong! Say anything to me to start over...',
+                    username: state.username
+                }
+                this.clearUserState(state);
                 return Promise.resolve(reply);
             });
     }
@@ -198,12 +213,22 @@ class EventBot {
     }
 
     searchReplaceReply(reply, state) {
-        let name = state.username || 'human';
-        return reply.replace('__Name__', name);
+        let name = state.username || this.defaultUserName;
+        return reply.replace(/__Name__/g, name);
     }
 
     handleGenericMessage(state, response) {
         this.logDialog(state, "start", state.userId, null, true);
+        let reply = '';
+        for (let i = 0; i < response.output['text'].length; i++) {
+            reply += response.output['text'][i] + '\n';
+        }
+        return Promise.resolve(reply);
+    }
+
+    handleSkipNameMessage(state, response, message) {
+        this.logDialog(state, "skip_name", "skip_name", {}, false);
+        state.username = this.defaultUserName;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -322,12 +347,6 @@ class EventBot {
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", "text", {}, false);
         let phoneNumber = message.replace(/\D/g,'');
-        if (! phoneNumber.startsWith('+')) {
-            if (! phoneNumber.startsWith('1')) {
-                phoneNumber = '1' + phoneNumber;
-            }
-            phoneNumber = '+' + phoneNumber;
-        }
         let body = this.baseUrl + '/events';
         if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
             body += '?ids=';
@@ -343,9 +362,28 @@ class EventBot {
             }
         }
         console.log(`Sending ${body} to ${phoneNumber}...`);
+        return this.sendTextMessage(phoneNumber, body)
+            .then(() => {
+                // clear user state - end of conversation
+                this.clearUserState(state);
+                let reply = '';
+                for (let i = 0; i < response.output['text'].length; i++) {
+                    reply += response.output['text'][i] + '\n';
+                }
+                return Promise.resolve(reply);
+            });
+    }
+
+    sendTextMessage(phoneNumber, text) {
+        if (! phoneNumber.startsWith('+')) {
+            if (! phoneNumber.startsWith('1')) {
+                phoneNumber = '1' + phoneNumber;
+            }
+            phoneNumber = '+' + phoneNumber;
+        }
         return new Promise((resolve, reject) => {
             this.twilioClient.messages.create({
-                body: body,
+                body: text,
                 to: phoneNumber,
                 from: this.twilioPhoneNumber
             }, (err, message) => {
@@ -356,16 +394,7 @@ class EventBot {
                     resolve(message);
                 }
             });
-        })
-            .then(() => {
-                // clear user state - end of conversation
-                this.clearUserState(state);
-                let reply = '';
-                for (let i = 0; i < response.output['text'].length; i++) {
-                    reply += response.output['text'][i] + '\n';
-                }
-                return Promise.resolve(reply);
-            });
+        });
     }
 
     logDialog(state, type, name, detail, newConversation) {
@@ -394,7 +423,7 @@ class EventBot {
     clearUserState(state) {
         state.username = null;
         state.lastReply = null;
-        state.conversationContext = null;
+        state.conversationContext = {};
         state.conversationStarted = false;
     }
 
