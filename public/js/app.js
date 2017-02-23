@@ -58,42 +58,16 @@ var app = new Vue({
 
             map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/dark-v9",
+                style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                 center: [-97.74306, 30.26715],
                 zoom: 12,
                 pitch: 30
             });
 
             map.on('load', function() {
-                if (!map.getSource('buildings')) {
-                    map.addSource('buildings', {
-                        type: 'vector',
-                        url: 'mapbox://rsbaumann.4url3cm7'
-                    });
-                }
-                if (!map.getLayer('3d-buildings')) {
-                    map.addLayer({
-                        'id': '3d-buildings',
-                        'source': 'buildings',
-                        'source-layer': 'austinbuildings',
-                        'type': 'fill-extrusion',
-                        'paint': {
-                            'fill-extrusion-color': '#aaa',
-                            'fill-extrusion-height': {
-                                'type': 'identity',
-                                'property': 'height'
-                            },
-                            'fill-extrusion-base': {
-                                'type': 'identity',
-                                'property': 'min_height'
-                            },
-                            'fill-extrusion-opacity': .6
-                        }
-                    }, 'buildings-label');
-                }
+                setTimeout(app.onTimer, 1);
             })
 
-            setTimeout(app.onTimer, 1);
         },
         onTimer() {
             if (!app.webSocketConnected) {
@@ -239,7 +213,8 @@ var app = new Vue({
                     "type": "symbol",
                     "source": 'locations',
                     "layout": {
-                        "icon-image": "marker-15"
+                        "icon-image": "marker-101",
+                        "icon-size": 0.2
                     }
                 }, 'events-label');
             }
@@ -257,18 +232,21 @@ var app = new Vue({
             }
 
             map.on('mousemove', function(e) {
-                try {
                     let buffer = 3
                     minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
                     maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
                     var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                         layers: ["eventslayer"]
                     });
+
                     map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
                     if (!fs.length) {
                         popup.remove();
                         return;
                     };
+
+                    console.log(fs)
+
                     if (fs.length > 1) {
                         popuphtml = "";
                         fs.forEach(function(f) {
@@ -285,9 +263,6 @@ var app = new Vue({
                         popuphtml += f.properties.description + "</div>";
                         popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
                     }
-                } catch (e) {
-                    console.log(e)
-                }
             });
         }
     }
