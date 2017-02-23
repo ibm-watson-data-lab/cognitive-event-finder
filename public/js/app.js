@@ -58,39 +58,16 @@ var app = new Vue({
 
             map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/dark-v9",
+                style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                 center: [-97.74306, 30.26715],
-                zoom: 15,
-                pitch: 60,
-                minZoom: 15
+                zoom: 12,
+                pitch: 30
             });
 
             map.on('load', function() {
-                if (!map.getLayer('3d-buildings')) {
-                    map.addLayer({
-                        'id': '3d-buildings',
-                        'source': 'composite',
-                        'source-layer': 'building',
-                        'filter': ['==', 'extrude', 'true'],
-                        'type': 'fill-extrusion',
-                        'minzoom': 15,
-                        'paint': {
-                            'fill-extrusion-color': '#aaa',
-                            'fill-extrusion-height': {
-                                'type': 'identity',
-                                'property': 'height'
-                            },
-                            'fill-extrusion-base': {
-                                'type': 'identity',
-                                'property': 'min_height'
-                            },
-                            'fill-extrusion-opacity': .6
-                        }
-                    }, 'buildings-label');
-                }
+                setTimeout(app.onTimer, 1);
             })
 
-            setTimeout(app.onTimer, 1);
         },
         onTimer() {
             if (!app.webSocketConnected) {
@@ -207,23 +184,18 @@ var app = new Vue({
                     }
                 }
 
-                x = feature.geometry.coordinates[0];
-                y = feature.geometry.coordinates[1];
-                if (i == 0) { // set initial bbox
-                    min[0] = max[0] = x;
-                    min[1] = max[1] = y;
-                } else {
-                    if (x < min[0]) min[0] = x;
-                    if (x > max[0]) max[0] = x;
-                    if (y < min[1]) min[1] = y;
-                    if (y > max[1]) max[1] = y;
-                }
-
                 if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates.length == 2 && feature.geometry.coordinates[0] && feature.geometry.coordinates[1]) {
                     features.push(feature);
                 }
             }
             geoj.features = features;
+            if (!geoj.features.length) {
+                console.log('no results!')
+                return
+            }
+
+            var bbox = turf.bbox(geoj)
+            console.log(bbox)
 
             if (!map.getSource('locations')) {
                 map.addSource('locations', {
@@ -238,75 +210,43 @@ var app = new Vue({
 
                 map.addLayer({
                     "id": "eventslayer",
-                    "type": "circle",
+                    "type": "symbol",
                     "source": 'locations',
-                    "paint": {
-                        "circle-radius": 16,
-                        "circle-color": "#ff0000",
-                        "circle-opacity": 0.5,
-                        "circle-stroke-width": 2,
-                        "circle-stroke-color": "#ff0000"
+                    "layout": {
+                        "icon-image": "marker-101",
+                        "icon-size": 0.2
                     }
                 }, 'events-label');
             }
 
-            if (!map.getLayer('3d-buildings')) {
-                map.addLayer({
-                    'id': '3d-buildings',
-                    'source': 'composite',
-                    'source-layer': 'building',
-                    'filter': ['==', 'extrude', 'true'],
-                    'type': 'fill-extrusion',
-                    'minzoom': 15,
-                    'paint': {
-                        'fill-extrusion-color': '#aaa',
-                        'fill-extrusion-height': {
-                            'type': 'identity',
-                            'property': 'height'
-                        },
-                        'fill-extrusion-base': {
-                            'type': 'identity',
-                            'property': 'min_height'
-                        },
-                        'fill-extrusion-opacity': .6
-                    }
-                }, 'buildings-label');
-            }
-
             if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
                 try {
-                    map.fitBounds([min, max], {
-                        "padding": 256
-                    });
+                    let buffer = 0.003
+                    map.fitBounds([
+                        [bbox[0] - buffer, bbox[1] - buffer],
+                        [bbox[2] + buffer, bbox[3] + buffer]
+                    ]);
                 } catch (e) {
                     console.log(e)
                 }
             }
 
-
-            function easing(t) {
-                return t * (5 - t);
-            }
-
-            try {
-                map.easeTo({
-                    pitch: 60,
-                    easing: easing
-                });
-            } catch (e) {
-                console.log(e)
-            }
-
             map.on('mousemove', function(e) {
-                try {
-                    var fs = map.queryRenderedFeatures(e.point, {
+                    let buffer = 3
+                    minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
+                    maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
+                    var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                         layers: ["eventslayer"]
                     });
+
                     map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
                     if (!fs.length) {
                         popup.remove();
                         return;
                     };
+
+                    console.log(fs)
+
                     if (fs.length > 1) {
                         popuphtml = "";
                         fs.forEach(function(f) {
@@ -323,9 +263,6 @@ var app = new Vue({
                         popuphtml += f.properties.description + "</div>";
                         popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
                     }
-                } catch (e) {
-                    console.log(e)
-                }
             });
         }
     }

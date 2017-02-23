@@ -52,6 +52,7 @@ var app = new Vue({
                 features.push(feature);
             }
             geoj.features = features;
+            var bbox = turf.bbox(geoj)
 
             var bounds = [
                     [-98, 29],
@@ -60,12 +61,10 @@ var app = new Vue({
 
             var map = new mapboxgl.Map({
                 container: "map",
-                style: "mapbox://styles/mapbox/dark-v9",
+                style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                 center: [-97.74306, 30.26715],
-                zoom: 15,
-                maxBounds: bounds,
-                minZoom: 15,
-                pitch: 60
+                zoom: 12,
+                pitch: 30
             });
 
             var userLocation = {
@@ -79,23 +78,41 @@ var app = new Vue({
                     }
                 }]
             }
-
-            // Austin convention center for demo purposes
-            // Update origin to user locatin as default!
             var origin = [-97.74046897888182,
-                30.26425663877134
-            ]
-            if (features.length) {
-                if ('geometry' in features[0]) {
-                    var destination = features[0].geometry.coordinates
-                    console.log('used custom destination')
+                        30.26425663877134
+                    ]
+            var destination;
+
+            function addGeolocation() {
+                // initial position at Austin Convention Center, 
+                // to update if geolocaiton is supported
+                origin = [-97.74046897888182,
+                        30.26425663877134
+                    ]
+
+                function geo_success(position) {
+                    origin = [position.coords.longitude, position.coords.latitude];
+                    console.log('origin: ' + origin)
+                    userLocation.features[0].geometry.coordinates = coords
+                    updateUserLocation(map, 'user-location', userLocation);
                 }
-            } else {
-                var destination = [-97.74497509002686,
-                    30.270001765380385
-                ]
-                console.log('used default destination')
+
+                function geo_error() {
+                    console.log("no position availalbe!");
+                }
+
+                var geo_options = {
+                    enableHighAccuracy: true,
+                    maximumAge: 15000,
+                    timeout: 13000
+                };
+
+                var wpid = navigator.geolocation.watchPosition(geo_success, geo_error, geo_options);
+
+
             }
+
+            destination = features[0].geometry.coordinates
 
             var directions = new MapboxDirections({
                 accessToken: mapboxgl.accessToken,
@@ -111,22 +128,6 @@ var app = new Vue({
                 interactive: false
             });
 
-            var geolocate = new mapboxgl.GeolocateControl({
-                positionOptions: {
-                    enableHighAccuracy: true,
-                    timeout: 10000, //Poll every 5 seconds
-                    maximumAge: 0
-                },
-                watchPosition: true //Update marker on geolocate
-            });
-
-            geolocate.on('geolocate', function(e) {
-                var user_point = [e.coords.longitude, e.coords.latitude]
-                userLocation.features[0].geometry.coordinates = user_point;
-                updateUserLocation(map, 'user-location', userLocation);
-            });
-
-            map.addControl(geolocate, 'top-right');
             map.addControl(directions, 'top-left');
 
             function updateUserLocation(map, sourceName, geojson) {
@@ -161,47 +162,31 @@ var app = new Vue({
             }
 
             map.on('load', function() {
+
                 if (!map.getLayer('eventsLayer')) {
                     map.addLayer({
                         "id": "eventslayer",
-                        "type": "circle",
+                        "type": "symbol",
                         "source": {
                             "type": "geojson",
-                            "cluster": true,
-                            "clusterMaxZoom": 11,
-                            "clusterRadius": 20,
                             "data": geoj
                         },
-                        "paint": {
-                            "circle-radius": 8,
-                            "circle-color": "#ff0000"
+                        "layout": {
+                            "icon-image": '{marker-15}'
                         }
                     });
                 }
-                if (!map.getLayer('3d-buildings')) {
-                    map.addLayer({
-                        'id': '3d-buildings',
-                        'source': 'composite',
-                        'source-layer': 'building',
-                        'filter': ['==', 'extrude', 'true'],
-                        'type': 'fill-extrusion',
-                        'minzoom': 15,
-                        'paint': {
-                            'fill-extrusion-color': '#aaa',
-                            'fill-extrusion-height': {
-                                'type': 'identity',
-                                'property': 'height'
-                            },
-                            'fill-extrusion-base': {
-                                'type': 'identity',
-                                'property': 'min_height'
-                            },
-                            'fill-extrusion-opacity': .6
-                        }
-                    }, 'buildings-label');
+                if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
+                    let buffer = 0.003
+                    map.fitBounds([
+                        [bbox[0] - buffer, bbox[1] - buffer],
+                        [bbox[2] + buffer, bbox[3] + buffer]
+                    ]);
                 }
-            });
 
+                addGeolocation();
+            });
+            console.log(origin + '; ' + destination)
             directions.setOrigin(origin);
             directions.setDestination(destination);
         }
