@@ -118,6 +118,19 @@ body,html {
     margin-top: 8px;
 }
 
+.event {
+    margin-top: 10px;
+    color: #fff;
+}
+.event-title {
+    margin: 5px;
+    font-weight: bold;
+}
+.event-description {
+    margin: 5px;
+    font-style: italic;
+}
+
 #sendmessage {
     padding: 0 1.5em;
 }

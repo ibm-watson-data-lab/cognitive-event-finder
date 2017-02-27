@@ -19,6 +19,7 @@ class EventBot {
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
         this.clientsById = {};
+        this.clientIdsByPhoneNumber = {};
         this.defaultUserName = 'human';
     }
 
@@ -48,29 +49,65 @@ class EventBot {
             }
         });
         this.webSocketBot.on('message', (client, msg) => {
+            if (msg.clientId) {
+                this.clientsById[msg.clientId] = client;
+            }
             if (msg.type == 'msg') {
-                let data = {
-                    client: client,
-                    user: client.id,
-                    text: msg.text
-                };
-                this.processMessage(data)
-                    .then((reply) => {
-                        if (reply.points) {
-                            this.sendMapMessageToClient(data.client, reply);
-                        }
-                        else {
-                            this.sendTextMessageToClient(data.client, reply);
-                        }
-                    });
+                // get or create state for the user
+                if (msg.text.startsWith('+')) {
+                    let data = {
+                        user: msg.text,
+                        text: 'hi'
+                    };
+                    this.setClientIdForPhoneNumber(data.user, msg.clientId);
+                    this.clearUserStateForUser(data.user);
+                    this.processMessage(data, {skip_name: true})
+                        .then((reply) => {
+                            if (reply.points) {
+                                this.sendMapMessageToClient(client, reply);
+                            }
+                            else {
+                                this.sendTextMessageToClient(client, reply);
+                            }
+                            return this.sendTextMessage(data.user, reply.text);
+                        });
+                }
+                else {
+                    let data = {
+                        user: client.id,
+                        text: msg.text
+                    };
+                    this.processMessage(data)
+                        .then((reply) => {
+                            if (reply.points) {
+                                this.sendMapMessageToClient(client, reply);
+                            }
+                            else {
+                                this.sendTextMessageToClient(client, reply);
+                            }
+                        });
+                }
             }
             else if (msg.type == 'ping') {
-                if (msg.clientId) {
-                    this.clientsById[msg.clientId] = client;
-                }
                 this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
             }
         });
+    }
+
+    setClientIdForPhoneNumber(phoneNumber, clientId) {
+        this.clientIdsByPhoneNumber[phoneNumber] = clientId;
+    }
+
+    getClientIdForPhoneNumber(phoneNumber) {
+        return this.clientIdsByPhoneNumber[phoneNumber];
+    }
+
+    removePhoneNumbersForClientId(clientId) {
+        for(let key in this.clientIdsByPhoneNumber) {
+            if (this.clientIdsByPhoneNumber[key] == clientId) {
+                delete this.clientIdsByPhoneNumber[key];
+            }
+        }
     }
 
     sendTextMessageToClient(client, message) {
@@ -99,7 +136,6 @@ class EventBot {
     }
 
     processMessage(data, contextVars) {
-        // get or create state for the user
         let message = data.text;
         let messageSender = data.user;
         let state = this.userStateMap[messageSender];
@@ -353,7 +389,7 @@ class EventBot {
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", "text", {}, false);
         let phoneNumber = message.replace(/\D/g,'');
-        let body = this.baseUrl + '/events';
+        let body = this.baseUrl + '/eventList';
         if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
             body += '?ids=';
             let first = true;
