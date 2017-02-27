@@ -7,6 +7,7 @@
 }
 .mapboxgl-popup {
     max-width: 396px;
+    z-index: 5;
 }
 .popup-title {
     color: #56A8FD;
@@ -31,7 +32,6 @@
 .app-banner-title {
     font-size: 36px;
     font-weight: 700;
-    top: 18px;
 }
 #watson_avatar_banner {
     max-height: 48px;
@@ -74,14 +74,14 @@ body,html {
 }
 
 #convo-section {
-    position: absolute;
-    top: -36px;
-    right: 18px;
     font-size: 9pt;
-    padding: 12px;
-    z-index: 9;
+    margin: 8px;
+    padding: 8px;
+    position: fixed;
+    z-index: 4;
     height: 275px;
     width: 512px;
+    max-width: 85%;
     background-color: rgba(255,255,255,0.85);
     border-radius: 12px;
     border: 6px solid #222; /*#DD1F80;*/
@@ -90,7 +90,7 @@ body,html {
 
 #message {
     display: initial;
-    width: 85%;
+    max-width: 85%;
 }
 
 .mapboxgl-ctrl-directions {
@@ -108,7 +108,7 @@ body,html {
     text-align: center;
 }
 .msg-chat {
-    width: 90%;
+    max-width: 90%;
 }
 .msg-chat ul {
     list-style: initial;

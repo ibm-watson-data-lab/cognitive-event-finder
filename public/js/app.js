@@ -251,13 +251,13 @@ var app = new Vue({
                     if (fs.length > 1) {
                         popuphtml = "";
                         fs.forEach(function(f) {
-                            titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                            titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
                             popuphtml += "<span class='popup-title'>" + titl + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
                         }, this);
                         popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
                     } else {
                         var f = fs[0];
-                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
                         popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
                         if (f.properties.img_url && f.properties.img_url != 'undefined')
                             popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
