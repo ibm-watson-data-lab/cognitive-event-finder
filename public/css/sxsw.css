@@ -12,6 +12,7 @@
 
 .mapboxgl-popup {
     max-width: 396px;
+    z-index: 5;
 }
 
 .popup-title {
@@ -108,6 +109,7 @@ html {
     padding: 0;
 }
 
+
 .right-fit-flex {
     flex-direction: row-reverse;
 }
@@ -164,7 +166,7 @@ html {
 
 #message {
     display: initial;
-    width: 85%;
+    max-width: 85%;
 }
 
 .msg-user,
@@ -181,7 +183,7 @@ html {
 }
 
 .msg-chat {
-    width: 90%;
+    max-width: 90%;
 }
 
 .msg-chat ul {
