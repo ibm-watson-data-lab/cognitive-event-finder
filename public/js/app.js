@@ -27,7 +27,6 @@ var app = new Vue({
             return false;
         },
         submitMessage: function() {
-            console.log(app)
             app.messages.unshift({
                 user: app.username || '<img src="img/anon_avatar.png">',
                 ts: new Date(),

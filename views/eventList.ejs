@@ -2,9 +2,12 @@
 <head>
     <meta name="theme-color" content="#5aaafa">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet">
+    <link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
     <link rel="stylesheet" href="css/master.css">
     <link rel="stylesheet" href="css/vis.min.css">
     <link rel="stylesheet" href="css/sxsw.css">
+    <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.css">
     <script>
         var events = <%- eventJson %>;
         var mapboxAccessToken = '<%= mapboxAccessToken%>';
@@ -12,21 +15,22 @@
 </head>
 <body>
 
-    <header class="capped-layout_cap col12 contain z1 app-banner">
-        <!-- img src="img/ibm_glyph.png" id="watson_glyph" --> 
+    <header class="app-banner col12 contain">
         <img src="img/Watson_Avatar_Rev_RGB.png" id="watson_avatar_banner">
         <span class="app-banner-title">SxSW Events</span>
     </header>
-
-    <div id="app">
-        <% for (let event of events) { %>
-        <div class="event">
-            <div class="event-title"><%= event.name %></div>
-            <div class="eventDescription"><%= event.description %></div>
-        </span>
-        <% } %>
+    <div id="container" class="container">
+     <div class='map' id='map'>
+      <div id="opensource-section">
+        <a href="https://github.com/ibm-cds-labs/cognitive-event-finder" target="_wdpgh">
+        <img src="img/GitHub-Mark-Light-32px.png" alt="github mark" id="ghmark">
+        This app is open source. Improve it with us on GitHub.</a>
+      </div>
+     </div>
     </div>
 
+<script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.js"></script>
+<script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
 <script src="js/vis-4.5.0.min.js"></script>
 <script src="js/vue-2.1.8.min.js"></script>
 <script src="js/vue-resource-1.0.3.min.js"></script>

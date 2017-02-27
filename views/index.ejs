@@ -17,8 +17,8 @@
 </head>
 
 <body>
-    <header class="capped-layout_cap col12 contain z1 app-banner">
-        <!-- img src="img/ibm_glyph.png" id="watson_glyph" --> 
+    <header class="app-banner col12 contain">
+        <img src="img/ibm_glyph.png" id="watson_glyph" class='right-fit-flex'> 
         <img src="img/Watson_Avatar_Rev_RGB.png" id="watson_avatar_banner">
         <span class="app-banner-title">SxSW Event Finder by IBM Watson</span>
     </header>
@@ -35,10 +35,13 @@
   </div>
   <div id='app'>
         <div id="convo-section" class='sidebar'>
+        <div class='center'> <h2> Talk with Watson </h2> </div>
+        <div class='sidebar-inner'>
             <form class="form" onsubmit="return false;">
                 <fieldset class="form_field">
-                    <input id="message" aria-label="Enter your message..." class="input_text" type="text" autocomplete="off" name="message" v-model="message" :disabled="! webSocketConnected" placeholder="Enter your message...">
-                    <button id="sendmessage" type="submit" class="button_primary" :disabled="! webSocketConnected" v-on:click="submitMessage">Go</button>
+                    <input id="message" aria-label="What's cool at SxSW..." class="input_text" type="text" autocomplete="off" name="message" v-model="message" :disabled="! webSocketConnected" placeholder="What's cool at SxSW...">
+                    <br><br>
+                    <button id="sendmessage" type="submit" class="button_primary pad1" :disabled="! webSocketConnected" v-on:click="submitMessage">Go</button>
                 </fieldset>
             </form>
             <div class="chat-message" v-for="msg in messages">
@@ -48,6 +51,7 @@
                         <chat-message :key="msg.key" :msg="msg"></chat-message>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>

@@ -6,8 +6,8 @@
 
 .container {
     display: flex;
-    height: 100vh;
-    overflow: hidden;
+    height: calc(100% - 75px);
+    top: 74px;
 }
 
 .mapboxgl-popup {
@@ -28,19 +28,21 @@
 }
 
 .app-banner {
-    background-image: url(../img/walnut_vert.jpg);
+    /*background-image: url(../img/walnut_vert.jpg);*/
     background-size: 15%;
+    align-self: center;
     background-position: right;
     background-color: #000;
     border-bottom: 1px solid white;
     color: #FFF;
     padding-left: 24px;
+    height: 75px;
+    position: absolute;
 }
 
 .app-banner-title {
     font-size: 36px;
     font-weight: 700;
-    top: 18px;
 }
 
 #watson_avatar_banner {
@@ -106,18 +108,25 @@ html {
     padding: 0;
 }
 
+.right-fit-flex {
+    flex-direction: row-reverse;
+}
+
+.center {
+    margin: auto;
+}
+
 .sidebar {
-    flex-grow: 0;
-    flex-shrink: 0;
-    font-size: 9pt;
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 10pt;
     padding: 12px;
     background-color: rgba(255, 255, 255, 0.85);
     width: 320px;
-    border-radius: 12px;
-    border: 6px solid #222;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    border: 3px;
 }
 
 .sidebar-inner {
@@ -125,7 +134,7 @@ html {
     display: flex;
     -webkit-box-orient: vertical;
     flex-direction: column;
-    height: 100%;
+    flex-grow: 1;
 }
 
 .sidebar-inner .flex-scroll {
@@ -158,10 +167,6 @@ html {
     width: 85%;
 }
 
-.mapboxgl-ctrl-directions {
-    height: 500px;
-}
-
 .msg-user,
 .msg-chat {
     display: inline-block;
@@ -189,13 +194,15 @@ html {
 }
 
 .event {
-    margin-top: 10px;
+    margin-top: 5px;
     color: #fff;
 }
 
 .event-title {
     margin: 5px;
+    padding: 5px;
     font-weight: bold;
+    color: white;
 }
 
 .event-description {
