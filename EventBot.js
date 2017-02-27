@@ -54,9 +54,10 @@ class EventBot {
             }
             if (msg.type == 'msg') {
                 // get or create state for the user
-                if (msg.text.startsWith('+')) {
+                if (msg.text.toLowerCase().startsWith('p:')) {
+                    let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
                     let data = {
-                        user: msg.text,
+                        user: phoneNumber,
                         text: 'hi'
                     };
                     this.setClientIdForPhoneNumber(data.user, msg.clientId);
@@ -395,7 +396,7 @@ class EventBot {
 
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", "text", {}, false);
-        let phoneNumber = message.replace(/\D/g,'');
+        let phoneNumber = this.formatPhoneNumber(message);
         let body = this.baseUrl + '/eventList';
         if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
             body += '?ids=';
@@ -423,13 +424,21 @@ class EventBot {
             });
     }
 
-    sendTextMessage(phoneNumber, text) {
-        if (! phoneNumber.startsWith('+')) {
+    formatPhoneNumber(phoneNumber) {
+        if (phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber.replace(/\D/g,'');
+        }
+        else {
+            phoneNumber = phoneNumber.replace(/\D/g,'');
             if (! phoneNumber.startsWith('1')) {
                 phoneNumber = '1' + phoneNumber;
             }
             phoneNumber = '+' + phoneNumber;
         }
+        return phoneNumber;
+    }
+
+    sendTextMessage(phoneNumber, text) {
         return new Promise((resolve, reject) => {
             this.twilioClient.messages.create({
                 body: text,

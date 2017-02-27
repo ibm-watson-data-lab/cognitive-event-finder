@@ -96,8 +96,9 @@ app.get('/eventList', (req, res) => {
 
 app.get('/control', (req, res) => {
     const clientId = req.query.clientId;
-    const phoneNumber = req.query.phone;
+    let phoneNumber = req.query.phone;
     if (phoneNumber) {
+        phoneNumber = eventBot.formatPhoneNumber(phoneNumber);
         eventBot.setClientIdForPhoneNumber(phoneNumber, clientId);
         let data = {
             user: phoneNumber,
