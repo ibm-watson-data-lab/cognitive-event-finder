@@ -77,6 +77,10 @@ class EventBot {
                         user: client.id,
                         text: msg.text
                     };
+                    let phoneNumberSet = this.removePhoneNumbersForClientId(msg.clientId);
+                    if (phoneNumberSet) {
+                        this.clearUserStateForUser(data.user);
+                    }
                     this.processMessage(data)
                         .then((reply) => {
                             if (reply.points) {
@@ -103,11 +107,14 @@ class EventBot {
     }
 
     removePhoneNumbersForClientId(clientId) {
+        let phoneNumberSet = false;
         for(let key in this.clientIdsByPhoneNumber) {
             if (this.clientIdsByPhoneNumber[key] == clientId) {
                 delete this.clientIdsByPhoneNumber[key];
+                phoneNumberSet = true;
             }
         }
+        return phoneNumberSet;
     }
 
     sendTextMessageToClient(client, message) {
