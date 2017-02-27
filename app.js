@@ -143,7 +143,7 @@ app.get('/sms', (req, res) => {
                 // clear user state
                 eventBot.clearUserStateForUser(data.user);
                 // send
-                let body = eventBot.baseUrl + '/events';
+                let body = eventBot.baseUrl + '/eventList';
                 if (reply.points && reply.points.length > 0) {
                     body += '?ids=';
                     let first = true;
