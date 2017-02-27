@@ -196,6 +196,7 @@ var app = new Vue({
             }
 
             var bbox = turf.bbox(geoj)
+            console.log(bbox)
 
             if (!map.getSource('locations')) {
                 map.addSource('locations', {
@@ -245,7 +246,7 @@ var app = new Vue({
                         return;
                     };
 
-                    console.log(fs.properties)
+                    console.log(fs)
 
                     if (fs.length > 1) {
                         popuphtml = "";
