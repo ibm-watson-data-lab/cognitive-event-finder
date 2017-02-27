@@ -1,117 +1,163 @@
 #map {
-    width: 100%;
-    height: 736px;
+      position:absolute;
+      width:100%;
+      top:70px; /* Equals the height of the header */
+      bottom:0;
+      left:0;
 }
 .mapboxgl-popup {
     max-width: 396px;
+    z-index: 5;
 }
 .popup-title {
     color: #56A8FD;
     font-weight: 500;
     font-size: 12pt;
 }
+.popup-image {
+    height: 84px;
+    float: left;
+    padding: 2px 4px 4px 0px;
+    border-radius: 12px 0 12px 0;
+}
 .app-banner {
-    background-color: #666;
-    font: normal normal 700 42px 'Roboto', sans-serif;;
+    background-image: url(../img/walnut_vert.jpg);
+    background-size: 15%;
+    background-position: right;
+    background-color: #000;
+    border-bottom: 1px solid white;
     color: #FFF;
+    padding-left: 24px;
+}
+.app-banner-title {
+    font-size: 36px;
+    font-weight: 700;
+}
+#watson_avatar_banner {
+    max-height: 48px;
+    padding: 0 8px 0 0;
+}
+#watson_glyph {
+    float: right;
+    height: 48px;
+}
+
+/* Dark attribution */
+.mapboxgl-ctrl.mapboxgl-ctrl-attrib { background-color:rgba(0,0,0,0.5); }
+.mapboxgl-ctrl.mapboxgl-ctrl-attrib a { color:#fff; }
+
+/* Dark popup */
+.mapboxgl-popup-content {
+  background-color:#202020 !important;
+  color:#fff;
+  z-index: 2;
+  }
+.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color:#202020 !important; }
+.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip { border-bottom-color:#202020 !important; }
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color:#202020 !important; }
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color:#202020 !important; }
+
+.banner-image {
+    position: absolute;
+    right:0;
 }
 
 body,html {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Helvetica Neue','Helvetica', sans-serif !important;
+    background-color: rgba(0,0,0,0.75) !important;
+    margin:0; 
+    padding:0;
 }
 
 #convo-section {
-    position: absolute;
-    top: -60px;
-    right: 24px;
     font-size: 9pt;
-    padding: 12px;
-    z-index: 9;
-    height: 196px;
+    margin: 8px;
+    padding: 8px;
+    position: fixed;
+    z-index: 4;
+    height: 275px;
     width: 512px;
+    max-width: 85%;
     background-color: rgba(255,255,255,0.85);
     border-radius: 12px;
-    border: 6px solid #DD1F80;
+    border: 6px solid #222; /*#DD1F80;*/
     overflow-y: auto;
 }
 
 #message {
     display: initial;
-    width: 85%;
-
+    max-width: 85%;
 }
 
-#twitter-feed-section {
-    position: absolute;
-    bottom: 84px;
-    left: 48px;
-    font-size: 9pt;
-    z-index: 4;
-    height: 196px;
-    width: 384px;
-    background-color: rgba(86,168,253,0.55);
-    border-radius: 12px;
-    border: 6px solid #56A8FD;
+.mapboxgl-ctrl-directions {
+    height: 500px;
 }
 
-
-.form {
-    /*border: 4px solid gray;
-    border-radius: 18px;
-    padding: 12px;
-    width: 400px;*/
+.msg-user, .msg-chat {
+    display: inline-block;
+    vertical-align: top;
 }
-
 .msg-user {
     padding: 0px 12px 0px 0px;
     font-weight: 700;
+    width: 40px;
+    text-align: center;
 }
-.msg-user-right {
-    float: right;
+.msg-chat {
+    max-width: 90%;
 }
-.msg-user-left {
-    float: left;
+.msg-chat ul {
+    list-style: initial;
+    padding-left: 2em;
 }
-
 .chat-message {
     margin-top: 8px;
 }
 
-.bubble {
-    position: relative;
-    display: inline-block;
-    width: 400px;
-    min-height: 1.5em;
-    padding: 6px;
-    background: #FFFFFF;
-    border: #7F7F7F solid 4px;
-    -webkit-border-radius: 16px;
-    -moz-border-radius: 16px;
-    border-radius: 16px;
+.event {
+    margin-top: 10px;
+    color: #fff;
+}
+.event-title {
+    margin: 5px;
+    font-weight: bold;
+}
+.event-description {
+    margin: 5px;
+    font-style: italic;
 }
 
-.bubble:after {
-    content: "";
-    position: absolute;
-    bottom: -15px;
-    left: 10%;
-    border-style: solid;
-    border-width: 15px 15px 0;
-    border-color: #FFFFFF transparent;
-    display: block;
-    width: 0;
-    z-index: 1;
+#sendmessage {
+    padding: 0 1.5em;
+}
+.textme {
+    font-weight: 700;
 }
 
-.bubble:before {
-    content: "";
+#opensource-section {
     position: absolute;
-    bottom: -19.5px;
-    left: calc(10% - 3px);
-    border-style: solid;
-    border-width: 18px 18px 0;
-    border-color: #7F7F7F transparent;
-    display: block;
-    width: 0;
-    z-index: 0;
+    bottom: 36px;
+    left: 10px;
+    font-size: 9pt;
+    font-weight: 900;
+    z-index: 4;
+    height: 48px;
+    width: 212px;
+    background-color: rgba(55,55,55,0.55);
+    border-radius: 12px;
+    border: 2px solid #666;
+    line-height: normal;
+    padding-top: 4px;
+}
+#opensource-section a {
+    color: #fff;
+}
+
+#ghmark {
+    float: left;
+    padding: 4px 4px 12px 4px;
 }

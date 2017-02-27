@@ -32,6 +32,7 @@ class WebSocketBot extends EventEmitter {
             }
         });
         connection.on('close', () => {
+            this.onClientDisconnected(client);
             let index = this.clients.indexOf(client);
             if (index >=0 ) {
                 this.clients.splice(index, 1);
@@ -42,6 +43,10 @@ class WebSocketBot extends EventEmitter {
 
     onMessageReceivedFromClient(client, message) {
         this.emit('message', client, message);
+    }
+
+    onClientDisconnected(client) {
+        this.emit('disconnect', client);
     }
 
     sendMessageToClient(client, message) {
