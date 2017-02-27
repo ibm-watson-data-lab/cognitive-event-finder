@@ -43,6 +43,7 @@ var app = new Vue({
                 }
             });
             app.webSocket.send(JSON.stringify({
+                clientId: clientId,
                 type: 'msg',
                 text: app.message
             }));
@@ -81,8 +82,8 @@ var app = new Vue({
                 app.connect();
             } else {
                 app.webSocket.send(JSON.stringify({
-                    type: 'ping',
-                    clientId: clientId
+                    clientId: clientId,
+                    type: 'ping'
                 }));
             }
             setTimeout(app.onTimer, 5000);

@@ -19,6 +19,7 @@ class EventBot {
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
         this.clientsById = {};
+        this.clientIdsByPhoneNumber = {};
         this.defaultUserName = 'human';
     }
 
@@ -48,29 +49,73 @@ class EventBot {
             }
         });
         this.webSocketBot.on('message', (client, msg) => {
+            if (msg.clientId) {
+                this.clientsById[msg.clientId] = client;
+            }
             if (msg.type == 'msg') {
-                let data = {
-                    client: client,
-                    user: client.id,
-                    text: msg.text
-                };
-                this.processMessage(data)
-                    .then((reply) => {
-                        if (reply.points) {
-                            this.sendMapMessageToClient(data.client, reply);
-                        }
-                        else {
-                            this.sendTextMessageToClient(data.client, reply);
-                        }
-                    });
+                // get or create state for the user
+                if (msg.text.toLowerCase().startsWith('p:')) {
+                    let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
+                    let data = {
+                        user: phoneNumber,
+                        text: 'hi'
+                    };
+                    this.setClientIdForPhoneNumber(data.user, msg.clientId);
+                    this.clearUserStateForUser(data.user);
+                    this.processMessage(data, {skip_name: true})
+                        .then((reply) => {
+                            if (reply.points) {
+                                this.sendMapMessageToClient(client, reply);
+                            }
+                            else {
+                                this.sendTextMessageToClient(client, reply);
+                            }
+                            return this.sendTextMessage(data.user, reply.text);
+                        });
+                }
+                else {
+                    let data = {
+                        user: client.id,
+                        text: msg.text
+                    };
+                    let phoneNumberSet = this.removePhoneNumbersForClientId(msg.clientId);
+                    if (phoneNumberSet) {
+                        this.clearUserStateForUser(data.user);
+                    }
+                    this.processMessage(data)
+                        .then((reply) => {
+                            if (reply.points) {
+                                this.sendMapMessageToClient(client, reply);
+                            }
+                            else {
+                                this.sendTextMessageToClient(client, reply);
+                            }
+                        });
+                }
             }
             else if (msg.type == 'ping') {
-                if (msg.clientId) {
-                    this.clientsById[msg.clientId] = client;
-                }
                 this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
             }
         });
+    }
+
+    setClientIdForPhoneNumber(phoneNumber, clientId) {
+        this.clientIdsByPhoneNumber[phoneNumber] = clientId;
+    }
+
+    getClientIdForPhoneNumber(phoneNumber) {
+        return this.clientIdsByPhoneNumber[phoneNumber];
+    }
+
+    removePhoneNumbersForClientId(clientId) {
+        let phoneNumberSet = false;
+        for(let key in this.clientIdsByPhoneNumber) {
+            if (this.clientIdsByPhoneNumber[key] == clientId) {
+                delete this.clientIdsByPhoneNumber[key];
+                phoneNumberSet = true;
+            }
+        }
+        return phoneNumberSet;
     }
 
     sendTextMessageToClient(client, message) {
@@ -99,7 +144,6 @@ class EventBot {
     }
 
     processMessage(data, contextVars) {
-        // get or create state for the user
         let message = data.text;
         let messageSender = data.user;
         let state = this.userStateMap[messageSender];
@@ -352,8 +396,8 @@ class EventBot {
 
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", "text", {}, false);
-        let phoneNumber = message.replace(/\D/g,'');
-        let body = this.baseUrl + '/events';
+        let phoneNumber = this.formatPhoneNumber(message);
+        let body = this.baseUrl + '/eventList';
         if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
             body += '?ids=';
             let first = true;
@@ -380,13 +424,21 @@ class EventBot {
             });
     }
 
-    sendTextMessage(phoneNumber, text) {
-        if (! phoneNumber.startsWith('+')) {
+    formatPhoneNumber(phoneNumber) {
+        if (phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber.replace(/\D/g,'');
+        }
+        else {
+            phoneNumber = phoneNumber.replace(/\D/g,'');
             if (! phoneNumber.startsWith('1')) {
                 phoneNumber = '1' + phoneNumber;
             }
             phoneNumber = '+' + phoneNumber;
         }
+        return phoneNumber;
+    }
+
+    sendTextMessage(phoneNumber, text) {
         return new Promise((resolve, reject) => {
             this.twilioClient.messages.create({
                 body: text,

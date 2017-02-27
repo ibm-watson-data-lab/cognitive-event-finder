@@ -7,6 +7,7 @@ const express = require('express');
 const CloudantEventStore = require('./CloudantEventStore');
 const EventBot = require('./EventBot');
 const TwilioRestClient = require('twilio').RestClient;
+const uuidV4 = require('uuid/v4');
 
 const appEnv = cfenv.getAppEnv();
 const app = express();
@@ -14,7 +15,6 @@ const http = require('http').Server(app);
 
 let cloudantEventStore;
 let eventBot;
-let clientIdsByPhoneNumber = {};
 
 (function() {
     // load environment variables
@@ -49,7 +49,7 @@ app.get('/', (req, res) => {
     res.render('index.ejs', {
         webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
-        clientId: req.query.clientId
+        clientId: req.query.clientId || uuidV4()
     });
 });
 
@@ -76,11 +76,30 @@ app.get('/events', (req, res) => {
     });
 });
 
+app.get('/eventList', (req, res) => {
+    let promise;
+    let ids = req.query.ids;
+    if (ids) {
+        promise = cloudantEventStore.getEventsForIds(ids.split(","));
+    }
+    else {
+        promise = cloudantEventStore.findSuggestedEvents(5);
+    }
+    promise.then((events) => {
+        res.render('eventList.ejs', {
+            events: events,
+            eventJson: JSON.stringify(events),
+            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
+        });
+    });
+});
+
 app.get('/control', (req, res) => {
     const clientId = req.query.clientId;
-    const phoneNumber = req.query.phone;
+    let phoneNumber = req.query.phone;
     if (phoneNumber) {
-        clientIdsByPhoneNumber[phoneNumber] = clientId;
+        phoneNumber = eventBot.formatPhoneNumber(phoneNumber);
+        eventBot.setClientIdForPhoneNumber(phoneNumber, clientId);
         let data = {
             user: phoneNumber,
             text: 'hi'
@@ -99,11 +118,7 @@ app.get('/control', (req, res) => {
             });
     }
     else if (clientId) {
-        for(let key in clientIdsByPhoneNumber) {
-            if (clientIdsByPhoneNumber[key] == clientId) {
-                delete clientIdsByPhoneNumber[key];
-            }
-        }
+        eventBot.removePhoneNumbersForClientId(clientId);
         res.send('OK');
     }
 
@@ -114,10 +129,10 @@ app.get('/sms', (req, res) => {
         user: req.query.From,
         text: req.query.Body
     };
-    const clientId = clientIdsByPhoneNumber[data.user];
+    const clientId = eventBot.getClientIdForPhoneNumber(data.user);
     if (clientId) {
         const username = data.user.substring(1,5) + '*';
-        eventBot.sendInputMessageToClientId(clientIdsByPhoneNumber[data.user], data.text, username);
+        eventBot.sendInputMessageToClientId(clientId, data.text, username);
     }
     eventBot.processMessage(data, {skip_name: true})
         .then((reply) => {
@@ -129,11 +144,11 @@ app.get('/sms', (req, res) => {
                 // clear user state
                 eventBot.clearUserStateForUser(data.user);
                 // send
-                let body = eventBot.baseUrl + '/events';
+                let body = eventBot.baseUrl + '/eventList';
                 if (reply.points && reply.points.length > 0) {
                     body += '?ids=';
                     let first = true;
-                    for(var point of reply.points) {
+                    for(let point of reply.points) {
                         if (first) {
                             first = false;
                         }
