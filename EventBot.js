@@ -281,7 +281,7 @@ class EventBot {
     }
 
     handleSkipNameMessage(state, response, message) {
-        this.logDialog(state, "skip_name", message, false);
+        this.logDialog(state, "skip_name", message, true);
         state.username = this.defaultUserName;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
@@ -324,7 +324,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<div class="textme">May I text you the results?</div>'
+                reply.text += '<div class="textme">May I text you the results?</div>';
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -374,7 +374,7 @@ class EventBot {
                     reply.points.push(event);
                 }
                 reply.text += '</ul>';
-                reply.text += '<div class="textme">May I text you the results?</div>'
+                reply.text += '<div class="textme">May I text you the results?</div>';
                 state.lastReply = reply;
                 return Promise.resolve(reply);
             });
@@ -466,7 +466,9 @@ class EventBot {
             return;
         }
         else {
-            this.saveQueuedDialog(state);
+            setTimeout( () => {
+                this.saveQueuedDialog(state);
+            }, 1);
         }
     }
 
@@ -493,6 +495,8 @@ class EventBot {
     }
 
     clearUserState(state) {
+        // do not clear out dialog state or userId
+        // they are used for logging which is done asynchronously
         state.username = null;
         state.lastReply = null;
         state.conversationContext = {};
