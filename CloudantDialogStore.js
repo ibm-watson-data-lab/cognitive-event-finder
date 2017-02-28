@@ -20,6 +20,7 @@ class CloudantDialogStore {
     init() {
         console.log('Getting dialog database...');
         this.db = this.cloudant.db.use(this.dbName);
+        return Promise.resolve();
         // return this.cloudant.db.list()
         //     .then((dbNames) => {
         //         var exists = false;
