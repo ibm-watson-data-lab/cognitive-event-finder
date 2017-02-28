@@ -4,6 +4,7 @@ const cfenv = require('cfenv');
 const cloudant = require('cloudant');
 const dotenv = require('dotenv');
 const express = require('express');
+const CloudantDialogStore = require('./CloudantDialogStore');
 const CloudantEventStore = require('./CloudantEventStore');
 const EventBot = require('./EventBot');
 const TwilioRestClient = require('twilio').RestClient;
@@ -13,6 +14,7 @@ const appEnv = cfenv.getAppEnv();
 const app = express();
 const http = require('http').Server(app);
 
+let cloudantDialogStore;
 let cloudantEventStore;
 let eventBot;
 
@@ -24,9 +26,11 @@ let eventBot;
         url: process.env.CLOUDANT_URL,
         plugin:'promises'
     });
-    cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_DB_NAME)
+    cloudantDialogStore = new CloudantDialogStore(cloudantClient, process.env.CLOUDANT_DIALOG_DB_NAME);
+    cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME);
     eventBot = new EventBot(
         cloudantEventStore,
+        cloudantDialogStore,
         process.env.CONVERSATION_USERNAME,
         process.env.CONVERSATION_PASSWORD,
         process.env.CONVERSATION_WORKSPACE_ID,

@@ -18,7 +18,7 @@ class CloudantEventStore {
      * @returns {Promise.<TResult>}
      */
     init() {
-        console.log('Getting database...');
+        console.log('Getting event database...');
         this.db = this.cloudant.db.use(this.dbName);
         // see if the by_popularity design doc exists, if not then create it
         return this.db.find({selector: {'_id': '_design/search'}})
