@@ -210,7 +210,7 @@ var app = new Vue({
             if (!map.getLayer('eventsLayer')) {
 
                 map.addLayer({
-                    "id": "eventslayer",
+                    "id": "eventsLayer",
                     "type": "symbol",
                     "source": 'locations',
                     "layout": {
@@ -237,7 +237,7 @@ var app = new Vue({
                     minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
                     maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
                     var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
-                        layers: ["eventslayer"]
+                        layers: ["eventsLayer"]
                     });
 
                     map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";

@@ -175,6 +175,7 @@ class EventBot {
         return this.sendRequestToConversation(request)
             .then((response) => {
                 state.conversationContext = response.context;
+                state.conversationContext['search_no_results'] = false;
                 let action = state.conversationContext['action'];
                 if (! action) {
                     action = 'start_search';
@@ -188,6 +189,9 @@ class EventBot {
                 }
                 else if (action == 'get_name') {
                     return this.handleGetNameMessage(state, response, message);
+                }
+                else if (action == 'search_retry') {
+                    return this.handleSearchRetryMessage(state, response, message);
                 }
                 else if (action == 'search_suggestion') {
                     return this.handleSearchSuggestionMessage(state, response, message);
@@ -220,26 +224,31 @@ class EventBot {
                 }
             })
             .then((reply) => {
-                if ((typeof reply) == 'string') {
-                    reply = this.searchReplaceReply(reply, state);
-                    if (restart) {
-                        this.clearUserState(state);
-                    }
-                    // set username after clearing
-                    reply = {
-                        text: reply,
-                        username: state.username
-                    }
+                if (reply.search_no_results) {
+                    return this.processMessage({user:data.user, text:null}, {search_no_results: true});
                 }
                 else {
-                    reply.text = this.searchReplaceReply(reply.text, state);
-                    if (restart) {
-                        this.clearUserState(state);
+                    if ((typeof reply) == 'string') {
+                        reply = this.searchReplaceReply(reply, state);
+                        if (restart) {
+                            this.clearUserState(state);
+                        }
+                        // set username after clearing
+                        reply = {
+                            text: reply,
+                            username: state.username
+                        }
                     }
-                    // set username after clearing
-                    reply.username = state.username;
+                    else {
+                        reply.text = this.searchReplaceReply(reply.text, state);
+                        if (restart) {
+                            this.clearUserState(state);
+                        }
+                        // set username after clearing
+                        reply.username = state.username;
+                    }
+                    return Promise.resolve(reply);
                 }
-                return Promise.resolve(reply);
             })
             .catch((err) => {
                 console.log(`Error: ${JSON.stringify(err)}`);
@@ -247,7 +256,7 @@ class EventBot {
                 const reply = {
                     text: 'Sorry, something went wrong! Say anything to me to start over...',
                     username: state.username
-                }
+                };
                 this.clearUserState(state);
                 return Promise.resolve(reply);
             });
@@ -300,6 +309,15 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
+    handleSearchRetryMessage(state, response, message) {
+        this.logDialog(state, "search_retry", message, true);
+        let reply = '';
+        for (let i = 0; i < response.output['text'].length; i++) {
+            reply += response.output['text'][i] + '\n';
+        }
+        return Promise.resolve(reply);
+    }
+
     handleGetSpeakerMessage(state, response, message) {
         this.logDialog(state, "get_speaker", message, false);
         let reply = '';
@@ -312,21 +330,34 @@ class EventBot {
     handleSearchSpeakerMessage(state, response, message) {
         this.logDialog(state, "search_speaker", message, false);
         let speaker = message;
-        let reply = {
-            text: '<b>Here are events featuring this speaker today:</b><br/>',
-            points: []
-        };
         return this.eventStore.findEventsBySpeaker(speaker, 5)
             .then((events) => {
-                reply.text += '<ul>';
-                for (const event of events) {
-                    reply.text += '<li>' + event.name + '</li>';
-                    reply.points.push(event);
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
                 }
-                reply.text += '</ul>';
-                reply.text += '<div class="textme">May I text you the results?</div>';
-                state.lastReply = reply;
-                return Promise.resolve(reply);
+                if (filteredEvents.length == 0) {
+                    const reply = { search_no_results: true };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here are events featuring this speaker today:</b><br/>',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    for (const event of filteredEvents) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastReply = reply;
+                    return Promise.resolve(reply);
+                }
             });
     }
 
@@ -342,41 +373,67 @@ class EventBot {
     handleSearchTopicMessage(state, response, message) {
         this.logDialog(state, "search_topic", message, false);
         let topic = message;
-        let reply = {
-            text: '<b>Here is a list of events happening today:</b><br/>',
-            points: []
-        };
         return this.eventStore.findEventsByTopic(topic, 5)
             .then((events) => {
-                reply.text += '<ul>';
-                for (const event of events) {
-                    reply.text += '<li>' + event.name + '</li>';
-                    reply.points.push(event);
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
                 }
-                reply.text += '</ul>';
-                reply.text += '<div class="textme">May I text you the results?</div>'
-                state.lastReply = reply;
-                return Promise.resolve(reply);
+                if (filteredEvents.length == 0) {
+                    const reply = { search_no_results: true };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here is a list of events happening today:</b><br/>',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    for (const event of events) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastReply = reply;
+                    return Promise.resolve(reply);
+                }
             });
     }
 
     handleSearchSuggestionMessage(state, response, message) {
         this.logDialog(state, "search_suggestion", message, false);
-        let reply = {
-            text: 'Here is a list of event suggestions for today:\n',
-            points: []
-        };
         return this.eventStore.findSuggestedEvents(5)
             .then((events) => {
-                reply.text += '<ul>';
-                for (const event of events) {
-                    reply.text += '<li>' + event.name + '</li>';
-                    reply.points.push(event);
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
                 }
-                reply.text += '</ul>';
-                reply.text += '<div class="textme">May I text you the results?</div>';
-                state.lastReply = reply;
-                return Promise.resolve(reply);
+                if (filteredEvents.length == 0) {
+                    const reply = { search_no_results: true };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: 'Here is a list of event suggestions for today:\n',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    for (const event of events) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastReply = reply;
+                    return Promise.resolve(reply);
+                }
             });
     }
 
