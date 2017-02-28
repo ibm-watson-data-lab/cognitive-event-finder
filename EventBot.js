@@ -5,9 +5,10 @@ const WebSocketBot = require('./WebSocketBot');
 
 class EventBot {
 
-    constructor(eventStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl) {
+    constructor(eventStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl) {
         this.userStateMap = {};
         this.eventStore = eventStore;
+        this.dialogStore = dialogStore;
         this.twilioClient = twilioClient;
         this.twilioPhoneNumber = twilioPhoneNumber;
         this.conversationService = new ConversationV1({
@@ -25,6 +26,9 @@ class EventBot {
 
     run() {
         this.eventStore.init()
+            .then(() => {
+                return this.dialogStore.init();
+            })
             .then(() => {
                 this.runWebSocketBot();
             })
@@ -177,7 +181,7 @@ class EventBot {
                 }
                 if (action == 'start_over') {
                     restart = true;
-                    return this.handleGenericMessage(state, response);
+                    return this.handleGenericMessage(state, response, message);
                 }
                 else if (action == 'skip_name') {
                     return this.handleSkipNameMessage(state, response, message);
@@ -186,23 +190,23 @@ class EventBot {
                     return this.handleGetNameMessage(state, response, message);
                 }
                 else if (action == 'search_suggestion') {
-                    return this.handleSearchSuggestionMessage(state, response);
+                    return this.handleSearchSuggestionMessage(state, response, message);
                 }
                 else if (action == 'get_topic') {
-                    return this.handleGetTopicMessage(state, response);
+                    return this.handleGetTopicMessage(state, response, message);
                 }
                 else if (action == 'search_topic') {
                     return this.handleSearchTopicMessage(state, response, message);
                 }
                 else if (action == 'get_speaker') {
-                    return this.handleGetSpeakerMessage(state, response);
+                    return this.handleGetSpeakerMessage(state, response, message);
                 }
                 else if (action == 'search_speaker') {
                     return this.handleSearchSpeakerMessage(state, response, message);
                 }
                 else if (action == 'finish_no_text') {
                     restart = true;
-                    return this.handleNoTextMessage(state, response);
+                    return this.handleNoTextMessage(state, response, message);
                 }
                 else if (action == 'get_phone_number') {
                     return this.handleGetPhoneNumberMessage(state, response);
@@ -212,7 +216,7 @@ class EventBot {
                     return this.handleTextMessage(state, response, message);
                 }
                 else {
-                    return this.handleGenericMessage(state, response);
+                    return this.handleGenericMessage(state, response, message);
                 }
             })
             .then((reply) => {
@@ -267,8 +271,8 @@ class EventBot {
         return reply.replace(/__Name__/g, name);
     }
 
-    handleGenericMessage(state, response) {
-        this.logDialog(state, "start", state.userId, null, true);
+    handleGenericMessage(state, response, message) {
+        this.logDialog(state, "start", message, true);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -277,7 +281,7 @@ class EventBot {
     }
 
     handleSkipNameMessage(state, response, message) {
-        this.logDialog(state, "skip_name", "skip_name", {}, false);
+        this.logDialog(state, "skip_name", message, false);
         state.username = this.defaultUserName;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
@@ -287,7 +291,7 @@ class EventBot {
     }
 
     handleGetNameMessage(state, response, message) {
-        this.logDialog(state, "get_name", "get_name", {}, false);
+        this.logDialog(state, "get_name", message, false);
         state.username = message;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
@@ -296,8 +300,8 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleGetSpeakerMessage(state, response) {
-        this.logDialog(state, "get_speaker", "get_speaker", {}, false);
+    handleGetSpeakerMessage(state, response, message) {
+        this.logDialog(state, "get_speaker", message, false);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -306,8 +310,8 @@ class EventBot {
     }
 
     handleSearchSpeakerMessage(state, response, message) {
+        this.logDialog(state, "search_speaker", message, false);
         let speaker = message;
-        this.logDialog(state, "search_speaker", speaker, {}, false);
         let reply = {
             text: '<b>Here are events featuring this speaker today:</b><br/>',
             points: []
@@ -326,8 +330,8 @@ class EventBot {
             });
     }
 
-    handleGetTopicMessage(state, response) {
-        this.logDialog(state, "get_topic", "get_topic", {}, false);
+    handleGetTopicMessage(state, response, message) {
+        this.logDialog(state, "get_topic", message, false);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -336,8 +340,8 @@ class EventBot {
     }
 
     handleSearchTopicMessage(state, response, message) {
+        this.logDialog(state, "search_topic", message, false);
         let topic = message;
-        this.logDialog(state, "search_topic", topic, {}, false);
         let reply = {
             text: '<b>Here is a list of events happening today:</b><br/>',
             points: []
@@ -356,8 +360,8 @@ class EventBot {
             });
     }
 
-    handleSearchSuggestionMessage(state, response) {
-        this.logDialog(state, "search_suggestion", "search_suggestion", {}, false);
+    handleSearchSuggestionMessage(state, response, message) {
+        this.logDialog(state, "search_suggestion", message, false);
         let reply = {
             text: 'Here is a list of event suggestions for today:\n',
             points: []
@@ -376,8 +380,8 @@ class EventBot {
             });
     }
 
-    handleNoTextMessage(state, response) {
-        this.logDialog(state, "no_text", "no_text", {}, false);
+    handleNoTextMessage(state, response, message) {
+        this.logDialog(state, "no_text", message, false);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -385,8 +389,8 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleGetPhoneNumberMessage(state, response) {
-        this.logDialog(state, "get_phone_number", "get_phone_number", {}, false);
+    handleGetPhoneNumberMessage(state, response, message) {
+        this.logDialog(state, "get_phone_number", message, false);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -395,7 +399,7 @@ class EventBot {
     }
 
     handleTextMessage(state, response, message) {
-        this.logDialog(state, "text", "text", {}, false);
+        this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
         let body = this.baseUrl + '/eventList';
         if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
@@ -455,9 +459,9 @@ class EventBot {
         });
     }
 
-    logDialog(state, type, name, detail, newConversation) {
+    logDialog(state, name, message, newConversation) {
         // queue up dialog to be saved asynchronously
-        state.dialogQueue.push({type: type, name: name, detail: detail, newConversation: newConversation});
+        state.dialogQueue.push({name: name, message: message, newConversation: newConversation});
         if (state.dialogQueue.length > 1) {
             return;
         }
@@ -468,14 +472,24 @@ class EventBot {
 
     saveQueuedDialog(state) {
         let dialog = state.dialogQueue.shift();
-        // let lastDialogVertex = dialog.newConversation ? null : state.lastDialogVertex;
-        // this.dialogStore.addDialog(dialog.type, dialog.name, dialog.detail, lastDialogVertex)
-        //     .then((dialogVertex) => {
-        //         state.lastDialogVertex = dialogVertex;
-        //         if (state.dialogQueue.length > 0) {
-        //             this.saveQueuedDialog(state);
-        //         }
-        //     });
+        let dialogDoc = {name:dialog.name, message:dialog.message};
+        if (dialog.newConversation) {
+            this.dialogStore.addConversation(state.userId, dialogDoc)
+                .then((conversationDoc) => {
+                    state.conversationId = conversationDoc.id;
+                    if (state.dialogQueue.length > 0) {
+                        this.saveQueuedDialog(state);
+                    }
+                });
+        }
+        else {
+            this.dialogStore.addDialog(state.conversationId, dialogDoc)
+                .then(() => {
+                    if (state.dialogQueue.length > 0) {
+                        this.saveQueuedDialog(state);
+                    }
+                });
+        }
     }
 
     clearUserState(state) {
