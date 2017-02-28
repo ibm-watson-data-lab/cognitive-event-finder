@@ -461,7 +461,7 @@ class EventBot {
 
     logDialog(state, name, message, newConversation) {
         // queue up dialog to be saved asynchronously
-        state.dialogQueue.push({name: name, message: message, newConversation: newConversation});
+        state.dialogQueue.push({name: name, message: message, date: Date.now(), newConversation: newConversation});
         if (state.dialogQueue.length > 1) {
             return;
         }
@@ -472,7 +472,7 @@ class EventBot {
 
     saveQueuedDialog(state) {
         let dialog = state.dialogQueue.shift();
-        let dialogDoc = {name:dialog.name, message:dialog.message};
+        let dialogDoc = {name:dialog.name, message:dialog.message, date:dialog.date};
         if (dialog.newConversation) {
             this.dialogStore.addConversation(state.userId, dialogDoc)
                 .then((conversationDoc) => {
