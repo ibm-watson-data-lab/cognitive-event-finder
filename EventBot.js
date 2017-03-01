@@ -351,7 +351,7 @@ class EventBot {
                     let i = 0;
                     for (const search of searches) {
                         i++;
-                        reply.text += '<li>' + i + '. ' + search.type + ':' + search.message + '</li>';
+                        reply.text += '<li>' + i + '. ' + search.type + ': ' + search.message + '</li>';
                         reply.searches.push(search);
                     }
                     reply.text += '</ul>';
