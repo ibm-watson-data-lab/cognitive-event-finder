@@ -252,16 +252,24 @@ var app = new Vue({
                         popuphtml = "";
                         fs.forEach(function(f) {
                             titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                            popuphtml += "<span class='popup-title'>" + titl + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
+                            popuphtml += "<div class='popup-title'>" + titl + "</div>";
+                            if (f.properties.description) {
+                                var desc = f.properties.description;
+                                if ( desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
+                                popuphtml += "<p>" + desc + "</p>";
+                            }
+                            
                         }, this);
                         popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
                     } else {
                         var f = fs[0];
                         titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
                         popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                        var desc = f.properties.description;
+                        if ( desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
                         if (f.properties.img_url && f.properties.img_url != 'undefined')
                             popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
-                        popuphtml += f.properties.description + "</div>";
+                        popuphtml += desc + "</div>";
                         popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
                     }
             });

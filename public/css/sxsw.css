@@ -16,16 +16,14 @@
 }
 
 .popup-title {
-    color: #56A8FD;
     font-weight: 500;
     font-size: 12pt;
 }
 
 .popup-image {
-    height: 84px;
+    height: 76px;
     float: left;
-    padding: 2px 4px 4px 0px;
-    border-radius: 12px 0 12px 0;
+    padding: 4px 6px 0px 0px;
 }
 
 .app-banner {
@@ -68,32 +66,16 @@
 }
 
 
-/* Dark popup */
+a {
+    color: #404040;
+    text-decoration: underline !important;
+}
+a:hover, a:active {
+    color: #000;
+}
 
 .mapboxgl-popup-content {
-    background-color: #202020 !important;
-    color: #fff;
     z-index: 2;
-}
-
-.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
-    border-top-color: #202020 !important;
-}
-
-.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
-    border-bottom-color: #202020 !important;
-}
-
-.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
-    border-left-color: #202020 !important;
-}
-
-.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
-    border-right-color: #202020 !important;
 }
 
 .banner-image {
@@ -104,6 +86,7 @@
 body,
 html {
     font-family: 'Helvetica Neue', 'Helvetica', sans-serif !important;
+    color: #404040;
     background-color: rgba(0, 0, 0, 0.75) !important;
     margin: 0;
     padding: 0;
