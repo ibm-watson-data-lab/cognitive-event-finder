@@ -324,6 +324,7 @@ hr {
 .theme_light .table_basic tbody td + td, .theme_light .theme_dark .theme_light .table_basic tbody td + td {
     border-left: 1px solid #e0e0e0;
 }
+
 .input_text {
     height: 32px;
     height: 2rem;
@@ -332,7 +333,7 @@ hr {
     background-color: #fff;
     display: block;
     color: black;
-    width: 100%;
+    width: flex;
     border: 1px solid #d3d9dd;
     padding: 6px 0 6px 12px;
     padding: .375rem 0 .375rem .75rem;
