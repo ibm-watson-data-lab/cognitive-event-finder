@@ -38,15 +38,13 @@
             <div class='sidebar-inner'>
                 <form class="form" onsubmit="return false;">
                     <fieldset class="form_field">
-                        <input id="message" aria-label="What's cool at SxSW..." class="input_text" type="text" autocomplete="off" name="message" v-model="message" :disabled="! webSocketConnected" placeholder="What's cool at SxSW...">
-                        <br><br>
-                        <button id="sendmessage" type="submit" class="button_primary pad1" :disabled="! webSocketConnected" v-on:click="submitMessage">Go</button>
+                        <input id="message" aria-label="What's cool at SxSW..." class="input_text" type="text" autocomplete="off" name="message" v-model="message" :disabled="! webSocketConnected" placeholder="What's cool at SxSW..." v-on:keyup.enter="submitMessage">
                     </fieldset>
                 </form>
                 <div class="chat-message" v-for="msg in messages">
                     <div class="msg-body" v-bind:style="msg.msgStyle">
                         <div v-bind:style="msg.userStyle" class="msg-user" v-html="msg.user"></div>
-                        <div class="msg-chat">
+                        <div class="msg-chat bubble" v-bind:class="[msg.isUser ? 'userBubble' : '']">
                             <chat-message :key="msg.key" :msg="msg"></chat-message>
                         </div>
                     </div>
