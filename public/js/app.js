@@ -62,8 +62,11 @@ var app = new Vue({
                 style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                 center: [-97.74306, 30.26715],
                 zoom: 12,
-                pitch: 30
+                pitch: 30,
+                attributionControl: false
             });
+
+            map.addControl(new mapboxgl.AttributionControl(), 'bottom-right');
 
             map.on('load', function() {
                 setTimeout(app.onTimer, 1);
@@ -108,7 +111,13 @@ var app = new Vue({
                             key: new Date().getTime() + '',
                             data: data,
                             userStyle: {
-
+                                'position': 'relative',
+                                'padding': '10px 20px',
+                                'color': 'white',
+                                'background': '#E5E5EA',
+                                'border-radius': '25px',
+                                'color': 'black',
+                                'float': 'left'
                             },
                             msgStyle: {
                                 'color': '#000000',
@@ -130,6 +139,12 @@ var app = new Vue({
                                 text: data.text
                             },
                             userStyle: {
+                                'position': 'relative',
+                                'padding': '10px 20px',
+                                'color': 'white',
+                                'background': '#0B93F6',
+                                'border-radius': '25px',
+                                'float': 'right'
                             },
                             msgStyle: {
                                 'color': '#929292'

@@ -1,13 +1,8 @@
 .map {
-    flex-grow: 1;
-    width: auto;
+    top: 74px;    
+    width: 100%;
+    height: 100%;
     background: #eee;
-}
-
-.container {
-    display: flex;
-    height: calc(100% - 75px);
-    top: 74px;
 }
 
 .mapboxgl-popup {
@@ -54,18 +49,6 @@
     height: 48px;
 }
 
-
-/* Dark attribution */
-
-.mapboxgl-ctrl.mapboxgl-ctrl-attrib {
-    background-color: rgba(0, 0, 0, 0.5);
-}
-
-.mapboxgl-ctrl.mapboxgl-ctrl-attrib a {
-    color: #fff;
-}
-
-
 a {
     color: #404040;
     text-decoration: underline !important;
@@ -111,7 +94,7 @@ html {
     bottom: 20px;
     position: absolute;
     z-index: 10;
-    border-radius: 3px;
+    border-radius: 10px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
