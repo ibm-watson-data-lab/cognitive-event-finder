@@ -148,7 +148,7 @@ app.get('/sms', (req, res) => {
                 // clear user state
                 eventBot.clearUserStateForUser(data.user);
                 // send
-                let body = eventBot.baseUrl + '/eventList';
+                let body = 'Tap here to see some matching events: ' + eventBot.baseUrl + '/eventList';
                 if (reply.points && reply.points.length > 0) {
                     body += '?ids=';
                     let first = true;
@@ -161,6 +161,15 @@ app.get('/sms', (req, res) => {
                         }
                         body += point._id;
                     }
+                }
+                res.send(body);
+            }
+            else if (reply.searches) {
+                let body = 'Recent searches:\n';
+                let i = 0;
+                for (const search of reply.searches) {
+                    i++;
+                    body += + i + '. ' + search.type + ': ' + search.message + '\n';
                 }
                 res.send(body);
             }

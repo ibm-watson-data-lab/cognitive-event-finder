@@ -2,6 +2,7 @@
 
 const ConversationV1 = require('watson-developer-cloud/conversation/v1');
 const WebSocketBot = require('./WebSocketBot');
+const uuidV4 = require('uuid/v4');
 
 class EventBot {
 
@@ -53,9 +54,11 @@ class EventBot {
             }
         });
         this.webSocketBot.on('message', (client, msg) => {
-            if (msg.clientId) {
-                this.clientsById[msg.clientId] = client;
+            let clientId = msg.clientId;
+            if (! clientId) {
+                clientId = uuidV4();
             }
+            this.clientsById[clientId] = client;
             if (msg.type == 'msg') {
                 // get or create state for the user
                 if (msg.text.toLowerCase().startsWith('p:')) {
@@ -64,7 +67,7 @@ class EventBot {
                         user: phoneNumber,
                         text: 'hi'
                     };
-                    this.setClientIdForPhoneNumber(data.user, msg.clientId);
+                    this.setClientIdForPhoneNumber(data.user, clientId);
                     this.clearUserStateForUser(data.user);
                     this.processMessage(data, {skip_name: true})
                         .then((reply) => {
@@ -79,10 +82,10 @@ class EventBot {
                 }
                 else {
                     let data = {
-                        user: client.id,
+                        user: clientId,
                         text: msg.text
                     };
-                    let phoneNumberSet = this.removePhoneNumbersForClientId(msg.clientId);
+                    let phoneNumberSet = this.removePhoneNumbersForClientId(clientId);
                     if (phoneNumberSet) {
                         this.clearUserStateForUser(data.user);
                     }
@@ -175,7 +178,6 @@ class EventBot {
         return this.sendRequestToConversation(request)
             .then((response) => {
                 state.conversationContext = response.context;
-                state.conversationContext['search_no_results'] = false;
                 let action = state.conversationContext['action'];
                 if (! action) {
                     action = 'start_search';
@@ -192,6 +194,15 @@ class EventBot {
                 }
                 else if (action == 'search_retry') {
                     return this.handleSearchRetryMessage(state, response, message);
+                }
+                else if (action == 'recent_searches') {
+                    return this.handleRecentSearches(state, response, message);
+                }
+                else if (action == 'recent_search_selected') {
+                    return this.handleRecentSearchSelected(state, response, message);
+                }
+                else if (action == 'recent_search_invalid_selection') {
+                    return this.handleRecentSearchInvalidSelection(state, response, message);
                 }
                 else if (action == 'search_suggestion') {
                     return this.handleSearchSuggestionMessage(state, response, message);
@@ -224,8 +235,8 @@ class EventBot {
                 }
             })
             .then((reply) => {
-                if (reply.search_no_results) {
-                    return this.processMessage({user:data.user, text:null}, {search_no_results: true});
+                if (reply.moveToNextDialog) {
+                    return this.processMessage({user:data.user, text:reply.nextDialogInputText}, reply.nextDialogContextVars);
                 }
                 else {
                     if ((typeof reply) == 'string') {
@@ -318,6 +329,71 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
+    handleRecentSearches(state, response, message) {
+        this.logDialog(state, "recent_searches", message, false);
+        state.conversationContext['recent_no_results'] = false;
+        return this.dialogStore.getRecentSearchesForUserId(state.userId, 5)
+            .then((searches) => {
+                if (! searches || searches.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {recent_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: 'Here is a list of your recent searches:\n',
+                        searches: []
+                    };
+                    reply.text += '<ul>';
+                    let i = 0;
+                    for (const search of searches) {
+                        i++;
+                        reply.text += '<li>' + i + '. ' + search.type + ': ' + search.message + '</li>';
+                        reply.searches.push(search);
+                    }
+                    reply.text += '</ul>';
+                    state.recentSearches = reply.searches
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleRecentSearchSelected(state, response, message) {
+        this.logDialog(state, "recent_search_selected", message, false);
+        let index = response.entities[0].value;
+        index--;
+        if (state.recentSearches && state.recentSearches.length > 0 && index < state.recentSearches.length) {
+            if (state.recentSearches[index].type == 'topic') {
+                return this.handleSearchTopicMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'speaker') {
+                return this.handleSearchSpeakerMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'suggest') {
+                return this.handleSearchSuggestionMessage(state, response, state.recentSearches[index].message);
+            }
+        }
+        // if we got here it was an invalid selection
+        const reply = {
+            moveToNextDialog: true,
+            nextDialogInputText: null,
+            nextDialogContextVars: {recent_invalid_selection: true}
+        };
+        return Promise.resolve(reply);
+    }
+
+    handleRecentSearchInvalidSelection(state, response, message) {
+        this.logDialog(state, "recent_search_invalid_selection", message, false);
+        let reply = '';
+        for (let i = 0; i < response.output['text'].length; i++) {
+            reply += response.output['text'][i] + '\n';
+        }
+        return Promise.resolve(reply);
+    }
+
     handleGetSpeakerMessage(state, response, message) {
         this.logDialog(state, "get_speaker", message, false);
         let reply = '';
@@ -329,6 +405,7 @@ class EventBot {
 
     handleSearchSpeakerMessage(state, response, message) {
         this.logDialog(state, "search_speaker", message, false);
+        state.conversationContext['search_no_results'] = false;
         let speaker = message;
         return this.eventStore.findEventsBySpeaker(speaker, 5)
             .then((events) => {
@@ -341,7 +418,11 @@ class EventBot {
                     }
                 }
                 if (filteredEvents.length == 0) {
-                    const reply = { search_no_results: true };
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
                     return Promise.resolve(reply);
                 }
                 else {
@@ -372,6 +453,7 @@ class EventBot {
 
     handleSearchTopicMessage(state, response, message) {
         this.logDialog(state, "search_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
         let topic = message;
         return this.eventStore.findEventsByTopic(topic, 5)
             .then((events) => {
@@ -384,7 +466,11 @@ class EventBot {
                     }
                 }
                 if (filteredEvents.length == 0) {
-                    const reply = { search_no_results: true };
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
                     return Promise.resolve(reply);
                 }
                 else {
@@ -406,6 +492,7 @@ class EventBot {
 
     handleSearchSuggestionMessage(state, response, message) {
         this.logDialog(state, "search_suggestion", message, false);
+        state.conversationContext['search_no_results'] = false;
         return this.eventStore.findSuggestedEvents(5)
             .then((events) => {
                 let filteredEvents = [];
@@ -417,7 +504,11 @@ class EventBot {
                     }
                 }
                 if (filteredEvents.length == 0) {
-                    const reply = { search_no_results: true };
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
                     return Promise.resolve(reply);
                 }
                 else {

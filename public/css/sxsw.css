@@ -4,6 +4,12 @@
     background: #eee;
 }
 
+.watson_avatar, .anon_avatar {
+    background-color: #000;
+    padding: 3px;
+    border-radius: 96px;
+}
+
 .container {
     display: flex;
     height: calc(100% - 75px);
@@ -27,7 +33,7 @@
 }
 
 .app-banner {
-    /*background-image: url(../img/walnut_vert.jpg);*/
+    background-image: url(../img/walnut_vert.jpg);
     background-size: 15%;
     align-self: center;
     background-position: right;
@@ -39,9 +45,18 @@
     position: absolute;
 }
 
-.app-banner-title {
-    font-size: 36px;
+#app-banner-title {
+    display: inline;
+    top: -58px;
+    left: 64px;
+}
+#app-banner-title-head {
+    font-size: 30px;
     font-weight: 700;
+}
+#app-banner-title-subhead {
+    font-size: 16px;
+    font-weight: 500;
 }
 
 #watson_avatar_banner {
@@ -147,37 +162,6 @@ html {
     }
 }
 
-#message {
-    display: initial;
-    max-width: 85%;
-}
-
-.msg-user,
-.msg-chat {
-    display: inline-block;
-    vertical-align: top;
-}
-
-.msg-user {
-    padding: 0px 12px 0px 0px;
-    font-weight: 700;
-    width: 40px;
-    text-align: center;
-}
-
-.msg-chat {
-    max-width: 90%;
-}
-
-.msg-chat ul {
-    list-style: initial;
-    padding-left: 2em;
-}
-
-.chat-message {
-    margin-top: 8px;
-}
-
 .event {
     margin-top: 5px;
     color: #fff;
@@ -220,7 +204,78 @@ html {
     text-decoration: initial;
 }
 
-#ghmark {
-    float: left;
-    padding: 4px 4px 12px 4px;
+.msg-user,
+.msg-chat {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.msg-user {
+    padding: 0px 12px 0px 0px;
+    font-weight: 700;
+    width: 40px;
+    text-align: center;
+    vertical-align: bottom;
+}
+
+.msg-chat {
+    max-width: 80%;
+    color: #FFF;
+}
+
+.msg-chat ul {
+    list-style: initial;
+    padding-left: 2em;
+}
+
+.chat-message {
+    margin-top: 8px;
+}
+
+.bubble {
+    position: relative;
+    display: inline-block;
+    width: 65%;
+    min-height: 1.5em;
+    padding: 6px 12px;
+    background: #56A8FD;
+    /*border: #7F7F7F solid 4px;*/
+    -webkit-border-radius: 16px;
+    -moz-border-radius: 16px;
+    border-radius: 16px;
+}
+
+/*.bubble:after {
+    content: "";
+    position: absolute;
+    bottom: -15px;
+    left: 10%;
+    border-style: solid;
+    border-width: 15px 15px 0;
+    border-color: #FFFFFF transparent;
+    display: block;
+    width: 0;
+    z-index: 1;
+}*/
+
+.bubble:before {
+    content: "";
+    position: absolute;
+    bottom: 8px;
+    left: -12px;
+    border-style: solid;
+    border-width: 0 0 15px 15px;
+    border-color: #56A8FD transparent;
+    display: block;
+    width: 0;
+    z-index: 0;
+}
+
+.userBubble:before {
+    left: calc(100% - 4px);
+    border-width: 0 15px 15px 0;
+}
+.userBubble {
+    margin-right: 12px;
+    float: right;
 }

@@ -1,4 +1,4 @@
-var botUsername = '<img src="img/watson_avatar_new.png">'; //'bot';
+var botUsername = '<img class="watson_avatar" src="img/Watson_Avatar_Rev_RGB.png">'; //'bot';
 var popup = new mapboxgl.Popup({
     closeButton: false,
     closeOnClick: true
@@ -28,18 +28,20 @@ var app = new Vue({
         },
         submitMessage: function() {
             app.messages.unshift({
-                user: app.username || '<img src="img/anon_avatar.png">',
+                user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
                 data: {
                     type: 'msg',
                     text: app.message
                 },
+                isUser: true, 
                 userStyle: {
-
+                    'float': 'right', 
+                    'padding-right': '0px', 
+                    'width': '28px'
                 },
                 msgStyle: {
-                    'color': '#929292'
                 }
             });
             app.webSocket.send(JSON.stringify({
@@ -107,12 +109,11 @@ var app = new Vue({
                             ts: new Date(),
                             key: new Date().getTime() + '',
                             data: data,
+                            isUser: false, 
                             userStyle: {
 
                             },
                             msgStyle: {
-                                'color': '#000000',
-                                'font-size': '10pt'
                             }
                         });
                         if (data.type == 'map') {
@@ -122,17 +123,20 @@ var app = new Vue({
                     else if (data.type == 'input') {
                         app.username = data.username;
                         app.messages.unshift({
-                            user: app.username || '<img src="img/anon_avatar.png">',
+                            user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),
                             key: new Date().getTime() + '',
                             data: {
                                 type: 'msg',
                                 text: data.text
                             },
+                            isUser: true, 
                             userStyle: {
+                                'float': 'right', 
+                                'padding-right': '0px', 
+                                'width': '28px'
                             },
                             msgStyle: {
-                                'color': '#929292'
                             }
                         });
                         app.message = '';

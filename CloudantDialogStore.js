@@ -20,90 +20,14 @@ class CloudantDialogStore {
     init() {
         console.log('Getting dialog database...');
         this.db = this.cloudant.db.use(this.dbName);
-        return Promise.resolve();
-        // return this.cloudant.db.list()
-        //     .then((dbNames) => {
-        //         var exists = false;
-        //         for (var dbName of dbNames) {
-        //             if (dbName == this.dbName) {
-        //                 exists = true;
-        //             }
-        //         }
-        //         if (!exists) {
-        //             console.log(`Creating database ${this.dbName}...`);
-        //             return this.cloudant.db.create(this.dbName);
-        //         }
-        //         else {
-        //             return Promise.resolve();
-        //         }
-        //     })
-        //     .then(() => {
-        //         this.db = this.cloudant.db.use(this.dbName);
-        //         return Promise.resolve();
-        //     })
-        //     .then(() => {
-        //         // see if the by_popularity design doc exists, if not then create it
-        //         return this.db.find({selector: {'_id': '_design/by_user_id'}});
-        //     })
-            // .then((result) => {
-            //     if (result && result.docs && result.docs.length > 0) {
-            //         return Promise.resolve();
-            //     }
-            //     else {
-            //         var designDoc = {
-            //             _id: '_design/by_user_id',
-            //             views: {
-            //                 ingredients: {
-            //                     map: 'function (doc) {\n  if (doc.type && doc.type==\'userIngredientRequest\') {\n    emit(doc.ingredient_name, 1);\n  }\n}',
-            //                     reduce: '_sum'
-            //                 },
-            //                 cuisines: {
-            //                     map: 'function (doc) {\n  if (doc.type && doc.type==\'userCuisineRequest\') {\n    emit(doc.cuisine_name, 1);\n  }\n}',
-            //                     reduce: '_sum'
-            //                 },
-            //                 recipes: {
-            //                     map: 'function (doc) {\n  if (doc.type && doc.type==\'userRecipeRequest\') {\n    emit(doc.recipe_title, 1);\n  }\n}',
-            //                     reduce: '_sum'
-            //                 }
-            //             },
-            //             'language': 'javascript'
-            //         };
-            //         return this.db.insert(designDoc);
-            //     }
-            // })
-            // .then(() => {
-            //     // see if the by_day_of_week design doc exists, if not then create it
-            //     return this.db.find({selector: {'_id': '_design/by_day_of_week'}});
-            // })
-            // .then((result) => {
-            //     if (result && result.docs && result.docs.length > 0) {
-            //         return Promise.resolve();
-            //     }
-            //     else {
-            //         var designDoc = {
-            //             _id: '_design/by_day_of_week',
-            //             views: {
-            //                 ingredients: {
-            //                     map: 'function (doc) {\n  if (doc.type && doc.type==\'userIngredientRequest\') {\n    var weekdays = [\'Sunday\',\'Monday\',\'Tuesday\',\'Wednesday\',\'Thursday\',\'Friday\',\'Saturday\'];\n    emit(weekdays[new Date(doc.date).getDay()], 1);\n  }\n}',
-            //                     reduce: '_sum'
-            //                 },
-            //                 cuisines: {
-            //                     map: 'function (doc) {\n  if (doc.type && doc.type==\'userCuisineRequest\') {\n    var weekdays = [\'Sunday\',\'Monday\',\'Tuesday\',\'Wednesday\',\'Thursday\',\'Friday\',\'Saturday\'];\n    emit(weekdays[new Date(doc.date).getDay()], 1);\n  }\n}',
-            //                     reduce: '_sum'
-            //                 },
-            //                 recipes: {
-            //                     map: 'function (doc) {\n  if (doc.type && doc.type==\'userRecipeRequest\') {\n    var weekdays = [\'Sunday\',\'Monday\',\'Tuesday\',\'Wednesday\',\'Thursday\',\'Friday\',\'Saturday\'];\n    emit(weekdays[new Date(doc.date).getDay()], 1);\n  }\n}',
-            //                     reduce: '_sum'
-            //                 }
-            //             },
-            //             'language': 'javascript'
-            //         };
-            //         return this.db.insert(designDoc);
-            //     }
-            // })
-            // .catch((err) => {
-            //     console.log(`Cloudant error: ${JSON.stringify(err)}`);
-            // });
+        // crate the date/userId index
+        var index = {
+            type: 'json',
+            index: {
+                fields: ['date',"userId"]
+            }
+        };
+        return this.db.index(index);
     }
 
     /**
@@ -131,6 +55,55 @@ class CloudantDialogStore {
             .then((conversationDoc) => {
                 conversationDoc.dialogs.push(dialog);
                 return this.db.insert(conversationDoc);
+            });
+    }
+
+    /**
+     * Gets the most recent searches for a userId.
+     * @param userId - The ID of the user
+     * @param count - Max number of searches to return
+     * @returns {Promise.<TResult>}
+     */
+    getRecentSearchesForUserId(userId, count) {
+        const selector = {
+            'date': {'$gt': 0},
+            'userId': userId
+        };
+        const sort = [{"date": "desc"}];
+        return this.db.find({selector: selector, sort: sort})
+            .then((result) => {
+                let searches = [];
+                if (result.docs && result.docs.length > 0) {
+                    for(let doc of result.docs) {
+                        for (let dialog of doc.dialogs) {
+                            if (! dialog.message) {
+                                continue;
+                            }
+                            let search = null;
+                            if (dialog.name == 'search_topic') {
+                                search = {type: 'topic', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_speaker') {
+                                search = {type: 'speaker', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_suggest') {
+                                search = {type: 'suggest', message: dialog.message};
+                            }
+                            if (search) {
+                                const matchingSearches = searches.filter((s) => {
+                                    return (s.type == search.type && s.message == search.message);
+                                });
+                                if (matchingSearches.length == 0) {
+                                    searches.push(search);
+                                }
+                            }
+                        }
+                        if (searches.length >= count) {
+                            break;
+                        }
+                    }
+                }
+                return Promise.resolve(searches);
             });
     }
 }
