@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const express = require('express');
 const CloudantDialogStore = require('./CloudantDialogStore');
 const CloudantEventStore = require('./CloudantEventStore');
+const CloudantUserStore = require('./CloudantUserStore');
 const EventBot = require('./EventBot');
 const TwilioRestClient = require('twilio').RestClient;
 const uuidV4 = require('uuid/v4');
@@ -16,6 +17,7 @@ const http = require('http').Server(app);
 
 let cloudantDialogStore;
 let cloudantEventStore;
+let cloudantUserStore;
 let eventBot;
 
 (function() {
@@ -28,8 +30,10 @@ let eventBot;
     });
     cloudantDialogStore = new CloudantDialogStore(cloudantClient, process.env.CLOUDANT_DIALOG_DB_NAME);
     cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME);
+    cloudantUserStore = new CloudantUserStore(cloudantClient, process.env.CLOUDANT_USER_DB_NAME);
     eventBot = new EventBot(
         cloudantEventStore,
+        cloudantUserStore,
         cloudantDialogStore,
         process.env.CONVERSATION_USERNAME,
         process.env.CONVERSATION_PASSWORD,
@@ -54,14 +58,14 @@ app.get('/', (req, res) => {
     res.render('index.ejs', {
         webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
-        clientId: req.query.clientId || uuidV4()
+        token: req.query.token || uuidV4()
     });
 });
 
 app.get('/chat', (req, res) => {
     res.render('chat.ejs', {
         webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
-        clientId: req.query.clientId || uuidV4()
+        token: req.query.token || uuidV4()
     });
 });
 

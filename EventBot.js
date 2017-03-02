@@ -7,9 +7,10 @@ const Bitly = require('bitly');
 
 class EventBot {
 
-    constructor(eventStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
+    constructor(eventStore, userStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
         this.userStateMap = {};
         this.eventStore = eventStore;
+        this.userStore = userStore;
         this.dialogStore = dialogStore;
         this.twilioClient = twilioClient;
         this.twilioPhoneNumber = twilioPhoneNumber;
@@ -23,12 +24,16 @@ class EventBot {
         this.baseUrl = baseUrl;
         this.clientsById = {};
         this.clientIdsByPhoneNumber = {};
+        this.clientIdsByToken = {};
         this.defaultUserName = 'human';
         this.bitly = new Bitly(bitlyAccessToken);
     }
 
     run() {
         this.eventStore.init()
+            .then(() => {
+                return this.userStore.init();
+            })
             .then(() => {
                 return this.dialogStore.init();
             })
@@ -48,89 +53,136 @@ class EventBot {
             console.log('Web socket is connected and running!')
         });
         this.webSocketBot.on('disconnect', (client) => {
-            for (let key in this.clientsById) {
-                if (this.clientsById[key] == client) {
-                    delete this.clientsById[key];
-                    break;
-                }
-            }
+            this.onWebSocketClientDisconnect(client);
         });
         this.webSocketBot.on('message', (client, msg) => {
-            let clientId = msg.clientId;
-            if (! clientId) {
-                clientId = uuidV4();
-            }
-            this.clientsById[clientId] = client;
-            if (msg.type == 'msg') {
-                // get or create state for the user
-                if (msg.text.toLowerCase().startsWith('p:')) {
-                    let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
-                    let data = {
-                        user: phoneNumber,
-                        text: 'hi'
-                    };
-                    this.setClientIdForPhoneNumber(data.user, clientId);
-                    this.clearUserStateForUser(data.user);
-                    this.processMessage(data)
-                        .then((reply) => {
-                            if (reply.points) {
-                                this.sendMapMessageToClient(client, reply);
-                            }
-                            else {
-                                this.sendTextMessageToClient(client, reply);
-                            }
-                            let url = this.baseUrl + '/chat?clientId=' + encodeURIComponent(data.user);
-                            return this.bitly.shorten(url)
-                                .then((response) => {
-                                    let text = reply.text.replace(/\s+$/g, '');
-                                    text += ' You can send text messages to me directly, or go here: ';
-                                    text += response.data.url;
-                                    return this.sendTextMessage(data.user, text);
-                                });
-                        });
-                }
-                else {
-                    let data = {
-                        user: clientId,
-                        text: msg.text
-                    };
-                    let phoneNumberSet = this.removePhoneNumbersForClientId(clientId);
-                    if (phoneNumberSet) {
-                        this.clearUserStateForUser(data.user);
-                    }
-                    let contextVars = {skip_name: true};
-                    let controlClientId = null;
-                    if (msg.mobile) {
-                        // on mobile we ask for the user's name
-                        contextVars = null;
-                        // if this is controlling another client update that client
-                        controlClientId = this.getClientIdForPhoneNumber(data.user);
-                        if (controlClientId) {
-                            this.sendInputMessageToClientId(controlClientId, data.text, data.user);
-                        }
-                    }
-                    this.processMessage(data, contextVars)
-                        .then((reply) => {
-                            if (msg.mobile && controlClientId) {
-                                // if this is controlling another client update that client
-                                this.sendOutputMessageToClientId(controlClientId, reply);
-                            }
-                            if (reply.points) {
-                                this.sendMapMessageToClient(client, reply);
-                                if (msg.mobile) {
-                                    this.clearUserStateForUser(data.user);
-                                }
-                            }
-                            else {
-                                this.sendTextMessageToClient(client, reply);
-                            }
-                        });
-                }
-            }
-            else if (msg.type == 'ping') {
-                this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
-            }
+            this.onWebSocketClientMessage(client, msg)
         });
+    }
+
+    onWebSocketClientDisconnect(client) {
+        for (let key in this.clientsById) {
+            if (this.clientsById[key] == client) {
+                delete this.clientsById[key];
+                break;
+            }
+        }
+    }
+
+    onWebSocketClientMessage(client, msg) {
+        this.getClientIdForToken(msg.token)
+            .then((clientId) => {
+                this.setClientIdForToken(msg.token, clientId);
+                this.processWebSocketClientMessageForClient(client, msg, clientId);
+            });
+    }
+
+    processWebSocketClientMessageForClient(client, msg, clientId) {
+        this.clientsById[clientId] = client;
+        if (msg.type == 'msg') {
+            // get or create state for the user
+            if (msg.text.toLowerCase().startsWith('p:')) {
+                let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
+                let data = {
+                    user: phoneNumber,
+                    text: 'hi'
+                };
+                this.userStore.getUserForId(phoneNumber)
+                    .then((user) => {
+                        if (!user) {
+                            // create a new user - generate a token (uuid)
+                            return this.userStore.addUser(phoneNumber, uuidV4())
+                        }
+                        else {
+                            return Promise.resolve(user);
+                        }
+                    })
+                    .then((user) => {
+                        this.setClientIdForToken(user.token, user._id);
+                        this.setClientIdForPhoneNumber(data.user, clientId);
+                        this.clearUserStateForUser(data.user);
+                        this.processMessage(data)
+                            .then((reply) => {
+                                if (reply.points) {
+                                    this.sendMapMessageToClient(client, reply);
+                                }
+                                else {
+                                    this.sendTextMessageToClient(client, reply);
+                                }
+                                let url = this.baseUrl + '/chat?clientId=' + encodeURIComponent(data.user);
+                                return this.bitly.shorten(url)
+                                    .then((response) => {
+                                        let text = reply.text.replace(/\s+$/g, '');
+                                        text += ' You can send text messages to me directly, or go here: ';
+                                        text += response.data.url;
+                                        return this.sendTextMessage(data.user, text);
+                                    });
+                            });
+                    });
+            }
+            else {
+                let data = {
+                    user: clientId,
+                    text: msg.text
+                };
+                let phoneNumberSet = this.removePhoneNumbersForClientId(clientId);
+                if (phoneNumberSet) {
+                    this.clearUserStateForUser(data.user);
+                }
+                let contextVars = {skip_name: true};
+                let controlClientId = null;
+                if (msg.mobile) {
+                    // on mobile we ask for the user's name
+                    contextVars = null;
+                    // if this is controlling another client update that client
+                    controlClientId = this.getClientIdForPhoneNumber(data.user);
+                    if (controlClientId) {
+                        this.sendInputMessageToClientId(controlClientId, data.text, data.user);
+                    }
+                }
+                this.processMessage(data, contextVars)
+                    .then((reply) => {
+                        if (msg.mobile && controlClientId) {
+                            // if this is controlling another client update that client
+                            this.sendOutputMessageToClientId(controlClientId, reply);
+                        }
+                        if (reply.points) {
+                            this.sendMapMessageToClient(client, reply);
+                            if (msg.mobile) {
+                                this.clearUserStateForUser(data.user);
+                            }
+                        }
+                        else {
+                            this.sendTextMessageToClient(client, reply);
+                        }
+                    });
+            }
+        }
+        else if (msg.type == 'ping') {
+            this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
+        }
+    }
+
+    setClientIdForToken(token, clientId) {
+        this.clientIdsByToken[token] = clientId;
+    }
+
+    getClientIdForToken(token) {
+        let clientId = this.clientIdsByToken[token];
+        if (! clientId) {
+            return this.userStore.getUserForToken(token)
+                .then((user) => {
+                    if (user) {
+                        return Promise.resolve(user._id);
+                    }
+                    else {
+                        return Promise.resolve(uuidV4());
+                    }
+                });
+        }
+        else {
+            return Promise.resolve(clientId);
+        }
     }
 
     setClientIdForPhoneNumber(phoneNumber, clientId) {
@@ -181,9 +233,16 @@ class EventBot {
         let message = data.text;
         let userId = data.user;
         let state = this.userStateMap[userId];
+        if (! contextVars) {
+            contextVars = {};
+        }
         if (!state) {
-            return this.dialogStore.getUserNameForUserId(userId)
-                .then((name) => {
+            return this.userStore.getUserForId(userId)
+                .then((user) => {
+                    let name = null;
+                    if (user) {
+                        name = user.name;
+                    }
                     state = {
                         userId: userId,
                         username: name,
@@ -192,16 +251,17 @@ class EventBot {
                     };
                     this.userStateMap[userId] = state;
                     if (name) {
-                        if (! contextVars) {
-                            contextVars = {};
-                        }
                         contextVars['returning_user'] = true;
                     }
                     return this.processMessageForUser(message, state, contextVars);
                 });
-
         }
         else {
+            let returningUser = false;
+            if (state.username) {
+                returningUser = true;
+            }
+            contextVars['returning_user'] = returningUser;
             return this.processMessageForUser(message, state, contextVars);
         }
     }
@@ -350,7 +410,6 @@ class EventBot {
 
     handleSkipNameMessage(state, response, message) {
         this.logDialog(state, "skip_name", message, true);
-        state.username = this.defaultUserName;
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -360,12 +419,15 @@ class EventBot {
 
     handleGetNameMessage(state, response, message) {
         this.logDialog(state, "get_name", message, false);
-        state.username = message;
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
+        return this.userStore.setNameForUser(state.userId, message)
+            .then(() => {
+                state.username = message;
+                let reply = '';
+                for (let i = 0; i < response.output['text'].length; i++) {
+                    reply += response.output['text'][i] + '\n';
+                }
+                return Promise.resolve(reply);
+            });
     }
 
     handleGetSearchTypeMessage(state, response, message) {
@@ -727,9 +789,8 @@ class EventBot {
     }
 
     clearUserState(state) {
-        // do not clear out dialog state or userId
+        // do not clear out dialog state, userId, or username
         // they are used for logging which is done asynchronously
-        state.username = null;
         state.lastReply = null;
         state.conversationContext = {};
         state.conversationStarted = false;

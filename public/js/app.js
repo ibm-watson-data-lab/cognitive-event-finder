@@ -39,7 +39,7 @@ var app = new Vue({
         },
         sendMessage: function(text) {
             app.webSocket.send(JSON.stringify({
-                clientId: clientId,
+                token: token,
                 type: 'msg',
                 text: text
             }));
@@ -77,7 +77,7 @@ var app = new Vue({
                 app.connect();
             } else {
                 app.webSocket.send(JSON.stringify({
-                    clientId: clientId,
+                    token: token,
                     type: 'ping'
                 }));
             }
