@@ -1,7 +1,35 @@
+.map {
+    flex-grow: 1;
+    width: auto;
+    background: #eee;
+}
+
+.watson_avatar, .anon_avatar {
+    background-color: #000;
+    padding: 3px;
+    border-radius: 96px;
+}
+
 .container {
     display: flex;
-    /*height: calc(100%); - 75px);*/
+    height: calc(100% - 75px);
     top: 74px;
+}
+
+.mapboxgl-popup {
+    max-width: 396px;
+    z-index: 5;
+}
+
+.popup-title {
+    font-weight: 500;
+    font-size: 12pt;
+}
+
+.popup-image {
+    height: 76px;
+    float: left;
+    padding: 4px 6px 0px 0px;
 }
 
 .app-banner {
@@ -41,28 +69,8 @@
     height: 48px;
 }
 
-/* Map */
-.map {
-    flex-grow: 1;
-    width: auto;
-    background: #eee;
-}
 
-.mapboxgl-popup {
-    max-width: 396px;
-    z-index: 5;
-}
-
-.popup-title {
-    font-weight: 500;
-    font-size: 12pt;
-}
-
-.popup-image {
-    height: 76px;
-    float: left;
-    padding: 4px 6px 0px 0px;
-}
+/* Dark attribution */
 
 .mapboxgl-ctrl.mapboxgl-ctrl-attrib {
     background-color: rgba(0, 0, 0, 0.5);
@@ -170,6 +178,14 @@ html {
     font-style: italic;
 }
 
+#sendmessage {
+    padding: 0 1.5em;
+}
+
+.textme {
+    font-weight: 700;
+}
+
 #opensource-section {
     position: absolute;
     bottom: 6px;
@@ -185,42 +201,6 @@ html {
 #opensource-section a {
     color: #fff;
     text-decoration: initial;
-}
-
-/* Conversation UI */
-#convo-section {
-    position: absolute;
-    z-index: 4;
-    background-color: #fff;
-    border-radius: 12px;
-    top: 50px;
-    left: 200px;
-    height: 300px;
-    width: 300px;
-}
-#convo-section:before {
-    content: "";
-    position: absolute;
-    top: 100%;
-    right: 40px;
-    border-style: solid;
-    border-width: 18 18 0;
-    border-color: #fff transparent;
-    display: block;
-    width: 0;
-    z-index: 0;
-}
-
-#sendmessage {
-    padding: 0 1.5em;
-}
-
-.textme {
-    font-weight: 700;
-}
-
-.chat-message {
-    margin-top: 8px;
 }
 
 .msg-user,
@@ -247,10 +227,8 @@ html {
     padding-left: 2em;
 }
 
-.watson_avatar, .anon_avatar {
-    background-color: #000;
-    padding: 3px;
-    border-radius: 96px;
+.chat-message {
+    margin-top: 8px;
 }
 
 .bubble {
