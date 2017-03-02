@@ -7,7 +7,8 @@ var app = new Vue({
         webSocketConnected: false,
         webSocketPingTimer: null,
         message: '',
-        messages: []
+        messages: [],
+        startMessageSent: false
     },
     methods: {
         submitMessage: function() {
@@ -28,13 +29,16 @@ var app = new Vue({
                 msgStyle: {
                 }
             });
+            app.sendMessage(app.message);
+            app.message = '';
+        },
+        sendMessage(text) {
             app.webSocket.send(JSON.stringify({
                 clientId: clientId,
                 type: 'msg',
-                text: app.message,
+                text: text,
                 mobile: true
             }));
-            app.message = '';
         },
         init() {
             setTimeout(app.onTimer, 1);
@@ -64,12 +68,19 @@ var app = new Vue({
                 app.webSocket.onopen = function() {
                     console.log('Web socket connected.');
                     app.webSocketConnected = (app.webSocket.readyState == 1);
+                    if (app.webSocketConnected && ! app.startMessageSent) {
+                        app.startMessageSent = true;
+                        app.sendMessage('Hi');
+                    }
                 };
                 app.webSocket.onmessage = function(evt) {
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
+                        if (data.type == 'map') {
+                            data.text += '<a href="' +  data.url + '">Tap here for more info.</a>'
+                        }
                         app.messages.unshift({
                             user: botUsername,
                             ts: new Date(),
@@ -82,9 +93,9 @@ var app = new Vue({
                             msgStyle: {
                             }
                         });
-                        if (data.type == 'map') {
-                            window.location = data.url;
-                        }
+                        // if (data.type == 'map') {
+                        //     window.location = data.url;
+                        // }
                     }
                     else if (data.type == 'input') {
                         app.messages.unshift({

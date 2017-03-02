@@ -71,7 +71,7 @@ class EventBot {
                     };
                     this.setClientIdForPhoneNumber(data.user, clientId);
                     this.clearUserStateForUser(data.user);
-                    this.processMessage(data, {skip_name: true})
+                    this.processMessage(data)
                         .then((reply) => {
                             if (reply.points) {
                                 this.sendMapMessageToClient(client, reply);
@@ -98,12 +98,12 @@ class EventBot {
                     if (phoneNumberSet) {
                         this.clearUserStateForUser(data.user);
                     }
-                    let contextVars = null;
+                    let contextVars = {skip_name: true};
                     let controlClientId = null;
                     if (msg.mobile) {
-                        // skip asking for name on mobile
-                        // also, if this is controlling another client update that client
-                        contextVars = {skip_name: true};
+                        // on mobile we ask for the user's name
+                        contextVars = null;
+                        // if this is controlling another client update that client
                         controlClientId = this.getClientIdForPhoneNumber(data.user);
                         if (controlClientId) {
                             this.sendInputMessageToClientId(controlClientId, data.text, data.user);
@@ -179,16 +179,34 @@ class EventBot {
 
     processMessage(data, contextVars) {
         let message = data.text;
-        let messageSender = data.user;
-        let state = this.userStateMap[messageSender];
+        let userId = data.user;
+        let state = this.userStateMap[userId];
         if (!state) {
-            state = {
-                userId: messageSender,
-                conversationContext: {},
-                dialogQueue: []
-            };
-            this.userStateMap[messageSender] = state;
+            return this.dialogStore.getUserNameForUserId(userId)
+                .then((name) => {
+                    state = {
+                        userId: userId,
+                        username: name,
+                        conversationContext: {},
+                        dialogQueue: []
+                    };
+                    this.userStateMap[userId] = state;
+                    if (name) {
+                        if (! contextVars) {
+                            contextVars = {};
+                        }
+                        contextVars['returning_user'] = true;
+                    }
+                    return this.processMessageForUser(message, state, contextVars);
+                });
+
         }
+        else {
+            return this.processMessageForUser(message, state, contextVars);
+        }
+    }
+
+    processMessageForUser(message, state, contextVars) {
         // add additional contextVars
         if (contextVars) {
             for (let key in contextVars) {
@@ -266,7 +284,7 @@ class EventBot {
             })
             .then((reply) => {
                 if (reply.moveToNextDialog) {
-                    return this.processMessage({user:data.user, text:reply.nextDialogInputText}, reply.nextDialogContextVars);
+                    return this.processMessage({user:state.userId, text:reply.nextDialogInputText}, reply.nextDialogContextVars);
                 }
                 else {
                     if ((typeof reply) == 'string') {

@@ -13,7 +13,8 @@ var app = new Vue({
         webSocketConnected: false,
         webSocketPingTimer: null,
         message: '',
-        messages: []
+        messages: [],
+        startMessageSent: false
     },
     methods: {
         submitMessage: function() {
@@ -25,21 +26,23 @@ var app = new Vue({
                     type: 'msg',
                     text: app.message
                 },
-                isUser: true, 
+                isUser: true,
                 userStyle: {
-                    'float': 'right', 
-                    'padding-right': '0px', 
+                    'float': 'right',
+                    'padding-right': '0px',
                     'width': '28px'
                 },
-                msgStyle: {
-                }
+                msgStyle: {}
             });
+            app.sendMessage(app.message);
+            app.message = '';
+        },
+        sendMessage: function(text) {
             app.webSocket.send(JSON.stringify({
                 clientId: clientId,
                 type: 'msg',
-                text: app.message
+                text: text
             }));
-            app.message = '';
         },
         init() {
             // init mapbox
@@ -87,6 +90,10 @@ var app = new Vue({
                 app.webSocket.onopen = function() {
                     console.log('Web socket connected.');
                     app.webSocketConnected = (app.webSocket.readyState == 1);
+                    if (app.webSocketConnected && ! app.startMessageSent) {
+                        app.startMessageSent = true;
+                        app.sendMessage('Hi');
+                    }
                 };
                 app.webSocket.onmessage = function(evt) {
                     app.webSocketConnected = true;

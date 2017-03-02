@@ -116,7 +116,7 @@ app.get('/control', (req, res) => {
             text: 'hi'
         };
         eventBot.clearUserStateForUser(data.user);
-        eventBot.processMessage(data, {skip_name: true})
+        eventBot.processMessage(data)
             .then((reply) => {
                 eventBot.sendOutputMessageToClientId(clientId, reply);
                 return eventBot.sendTextMessage(phoneNumber, reply.text);

@@ -60,6 +60,27 @@ class CloudantDialogStore {
     }
 
     /**
+     * Gets the user name for the userId.
+     * @param userId - The ID of the user
+     * @returns {Promise.<TResult>}
+     */
+    getUserNameForUserId(userId) {
+        const selector = {
+            'date': {'$gt': 0},
+            'userId': userId
+        };
+        return this.db.find({selector: selector})
+            .then((result) => {
+                if (result.docs && result.docs.length > 0) {
+                    return Promise.resolve(userId);
+                }
+                else {
+                    return Promise.resolve();
+                }
+            });
+    }
+
+    /**
      * Gets the most recent searches for a userId.
      * @param userId - The ID of the user
      * @param count - Max number of searches to return
