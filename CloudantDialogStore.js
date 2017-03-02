@@ -20,14 +20,15 @@ class CloudantDialogStore {
     init() {
         console.log('Getting dialog database...');
         this.db = this.cloudant.db.use(this.dbName);
-        // crate the date/userId index
-        var index = {
-            type: 'json',
-            index: {
-                fields: ['date',"userId"]
-            }
-        };
-        return this.db.index(index);
+        // // crate the date/userId index
+        // var index = {
+        //     type: 'json',
+        //     index: {
+        //         fields: ['date',"userId"]
+        //     }
+        // };
+        // return this.db.index(index);
+        return Promise.resolve(true);
     }
 
     /**
