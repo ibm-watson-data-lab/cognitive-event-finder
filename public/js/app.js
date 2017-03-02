@@ -34,14 +34,15 @@ var app = new Vue({
                 },
                 msgStyle: {}
             });
-            app.sendMessage(app.message);
+            app.sendMessage(app.message, false);
             app.message = '';
         },
-        sendMessage: function(text) {
+        sendMessage: function(text, startOver) {
             app.webSocket.send(JSON.stringify({
                 token: token,
                 type: 'msg',
-                text: text
+                text: text,
+                startOver: startOver
             }));
         },
         init() {
@@ -92,7 +93,7 @@ var app = new Vue({
                     app.webSocketConnected = (app.webSocket.readyState == 1);
                     if (app.webSocketConnected && ! app.startMessageSent) {
                         app.startMessageSent = true;
-                        app.sendMessage('Hi');
+                        app.sendMessage('Hi', true);
                     }
                 };
                 app.webSocket.onmessage = function(evt) {

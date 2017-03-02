@@ -53,7 +53,7 @@ class CloudantUserStore {
      * @returns {Promise.<TResult>}
      */
     setNameForUser(userId, name) {
-        return this.db.get(userId)
+        return this.getUserForId(userId)
             .then((userDoc) => {
                 if (userDoc) {
                     userDoc.name = name;

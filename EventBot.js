@@ -70,15 +70,23 @@ class EventBot {
     }
 
     onWebSocketClientMessage(client, msg) {
-        this.getClientIdForToken(msg.token)
-            .then((clientId) => {
-                this.setClientIdForToken(msg.token, clientId);
-                this.processWebSocketClientMessageForClient(client, msg, clientId);
-            });
+        if (msg.type == 'ping') {
+            this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
+        }
+        else {
+            this.getClientIdForToken(msg.token)
+                .then((clientId) => {
+                    this.setClientIdForToken(msg.token, clientId);
+                    this.processWebSocketClientMessageForClient(client, msg, clientId);
+                });
+        }
     }
 
     processWebSocketClientMessageForClient(client, msg, clientId) {
         this.clientsById[clientId] = client;
+        if (msg.startOver) {
+            this.clearUserStateForUser(clientId);
+        }
         if (msg.type == 'msg') {
             // get or create state for the user
             if (msg.text.toLowerCase().startsWith('p:')) {
@@ -109,7 +117,7 @@ class EventBot {
                                 else {
                                     this.sendTextMessageToClient(client, reply);
                                 }
-                                let url = this.baseUrl + '/chat?clientId=' + encodeURIComponent(data.user);
+                                let url = this.baseUrl + '/chat?token=' + encodeURIComponent(user.token);
                                 return this.bitly.shorten(url)
                                     .then((response) => {
                                         let text = reply.text.replace(/\s+$/g, '');
@@ -157,9 +165,6 @@ class EventBot {
                         }
                     });
             }
-        }
-        else if (msg.type == 'ping') {
-            this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
         }
     }
 
