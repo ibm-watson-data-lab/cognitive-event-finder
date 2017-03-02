@@ -18,7 +18,7 @@ var app = new Vue({
     },
     methods: {
         submitMessage: function() {
-            app.messages.unshift({
+            app.messages.push({
                 user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
@@ -100,7 +100,7 @@ var app = new Vue({
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
-                        app.messages.unshift({
+                        app.messages.push({
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
@@ -117,7 +117,7 @@ var app = new Vue({
                         }
                     }
                     else if (data.type == 'input') {
-                        app.messages.unshift({
+                        app.messages.push({
                             user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),
                             key: new Date().getTime() + '',
