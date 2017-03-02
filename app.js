@@ -37,7 +37,8 @@ let eventBot;
         new TwilioRestClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN),
         process.env.TWILIO_PHONE_NUMBER,
         http,
-        appEnv.url
+        appEnv.url,
+        process.env.BITLY_ACCESS_TOKEN
     );
     eventBot.run();
 })();
@@ -57,7 +58,13 @@ app.get('/', (req, res) => {
     });
 });
 
-// map requests
+app.get('/chat', (req, res) => {
+    res.render('chat.ejs', {
+        webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
+        clientId: req.query.clientId || uuidV4()
+    });
+});
+
 app.get('/events', (req, res) => {
     let promise;
     let ids = req.query.ids;
@@ -135,8 +142,7 @@ app.get('/sms', (req, res) => {
     };
     const clientId = eventBot.getClientIdForPhoneNumber(data.user);
     if (clientId) {
-        const username = data.user.substring(1,5) + '*';
-        eventBot.sendInputMessageToClientId(clientId, data.text, username);
+        eventBot.sendInputMessageToClientId(clientId, data.text, data.user);
     }
     eventBot.processMessage(data, {skip_name: true})
         .then((reply) => {
@@ -148,20 +154,7 @@ app.get('/sms', (req, res) => {
                 // clear user state
                 eventBot.clearUserStateForUser(data.user);
                 // send
-                let body = 'Tap here to see some matching events: ' + eventBot.baseUrl + '/eventList';
-                if (reply.points && reply.points.length > 0) {
-                    body += '?ids=';
-                    let first = true;
-                    for(let point of reply.points) {
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            body += '%2C';
-                        }
-                        body += point._id;
-                    }
-                }
+                let body = 'Tap here to see some matching events: ' + reply.url;
                 res.send(body);
             }
             else if (reply.searches) {

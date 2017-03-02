@@ -153,7 +153,6 @@ html {
     }
     .sidebar {
         flex-shrink: 1;
-        height: 33vh;
         order: 2;
         width: 100%;
     }

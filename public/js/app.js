@@ -13,19 +13,9 @@ var app = new Vue({
         webSocketConnected: false,
         webSocketPingTimer: null,
         message: '',
-        messages: [],
-        username: null
+        messages: []
     },
     methods: {
-        isMatch: function(msg, strLowers) {
-            var msgLower = msg.toLowerCase();
-            for (var i = 0; i < strLowers.length; i++) {
-                if (strLowers[i].indexOf(msgLower) >= 0) {
-                    return true;
-                }
-            }
-            return false;
-        },
         submitMessage: function() {
             app.messages.unshift({
                 user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
@@ -103,7 +93,6 @@ var app = new Vue({
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
-                        app.username = data.username;
                         app.messages.unshift({
                             user: botUsername,
                             ts: new Date(),
@@ -121,7 +110,6 @@ var app = new Vue({
                         }
                     }
                     else if (data.type == 'input') {
-                        app.username = data.username;
                         app.messages.unshift({
                             user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),

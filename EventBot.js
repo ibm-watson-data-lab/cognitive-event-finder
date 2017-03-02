@@ -3,10 +3,11 @@
 const ConversationV1 = require('watson-developer-cloud/conversation/v1');
 const WebSocketBot = require('./WebSocketBot');
 const uuidV4 = require('uuid/v4');
+const Bitly = require('bitly');
 
 class EventBot {
 
-    constructor(eventStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl) {
+    constructor(eventStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
         this.userStateMap = {};
         this.eventStore = eventStore;
         this.dialogStore = dialogStore;
@@ -23,6 +24,7 @@ class EventBot {
         this.clientsById = {};
         this.clientIdsByPhoneNumber = {};
         this.defaultUserName = 'human';
+        this.bitly = new Bitly(bitlyAccessToken);
     }
 
     run() {
@@ -77,7 +79,14 @@ class EventBot {
                             else {
                                 this.sendTextMessageToClient(client, reply);
                             }
-                            return this.sendTextMessage(data.user, reply.text);
+                            let url = this.baseUrl + '/chat?clientId=' + encodeURIComponent(data.user);
+                            return this.bitly.shorten(url)
+                                .then((response) => {
+                                    let text = reply.text.replace(/\s+$/g, '');
+                                    text += ' You can send text messages to me directly, or go here: ';
+                                    text += response.data.url;
+                                    return this.sendTextMessage(data.user, text);
+                                });
                         });
                 }
                 else {
@@ -89,10 +98,28 @@ class EventBot {
                     if (phoneNumberSet) {
                         this.clearUserStateForUser(data.user);
                     }
-                    this.processMessage(data)
+                    let contextVars = null;
+                    let controlClientId = null;
+                    if (msg.mobile) {
+                        // skip asking for name on mobile
+                        // also, if this is controlling another client update that client
+                        contextVars = {skip_name: true};
+                        controlClientId = this.getClientIdForPhoneNumber(data.user);
+                        if (controlClientId) {
+                            this.sendInputMessageToClientId(controlClientId, data.text, data.user);
+                        }
+                    }
+                    this.processMessage(data, contextVars)
                         .then((reply) => {
+                            if (msg.mobile && controlClientId) {
+                                // if this is controlling another client update that client
+                                this.sendOutputMessageToClientId(controlClientId, reply);
+                            }
                             if (reply.points) {
                                 this.sendMapMessageToClient(client, reply);
+                                if (msg.mobile) {
+                                    this.clearUserStateForUser(data.user);
+                                }
                             }
                             else {
                                 this.sendTextMessageToClient(client, reply);
@@ -130,7 +157,7 @@ class EventBot {
     }
 
     sendMapMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
+        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points, url:message.url});
     }
 
     sendOutputMessageToClientId(clientId, message) {
@@ -191,6 +218,9 @@ class EventBot {
                 }
                 else if (action == 'get_name') {
                     return this.handleGetNameMessage(state, response, message);
+                }
+                else if (action == 'get_search_type') {
+                    return this.handleGetSearchTypeMessage(state, response, message);
                 }
                 else if (action == 'search_retry') {
                     return this.handleSearchRetryMessage(state, response, message);
@@ -320,6 +350,15 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
+    handleGetSearchTypeMessage(state, response, message) {
+        this.logDialog(state, "get_search_type", message, false);
+        let reply = '';
+        for (let i = 0; i < response.output['text'].length; i++) {
+            reply += response.output['text'][i] + '\n';
+        }
+        return Promise.resolve(reply);
+    }
+
     handleSearchRetryMessage(state, response, message) {
         this.logDialog(state, "search_retry", message, true);
         let reply = '';
@@ -428,11 +467,20 @@ class EventBot {
                 else {
                     let reply = {
                         text: '<b>Here are events featuring this speaker today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     reply.text += '<ul>';
+                    let first = true
                     for (const event of filteredEvents) {
                         reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
@@ -476,11 +524,20 @@ class EventBot {
                 else {
                     let reply = {
                         text: '<b>Here is a list of events happening today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     reply.text += '<ul>';
+                    let first = true;
                     for (const event of events) {
                         reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
@@ -514,11 +571,20 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here is a list of event suggestions for today:\n',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     reply.text += '<ul>';
+                    let first = true;
                     for (const event of events) {
                         reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
