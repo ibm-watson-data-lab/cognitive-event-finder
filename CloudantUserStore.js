@@ -43,7 +43,10 @@ class CloudantUserStore {
             token: token,
             date: Date.now()
         };
-        return this.db.insert(userDoc);
+        return this.db.insert(userDoc)
+            .then(() => {
+                return this.getUserForId(userId);
+            });
     }
 
     /**

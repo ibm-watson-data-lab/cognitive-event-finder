@@ -22,9 +22,9 @@ class EventBot {
         this.conversationWorkspaceId = conversationWorkspaceId;
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
-        this.clientsById = {};
-        this.clientIdsByPhoneNumber = {};
-        this.clientIdsByToken = {};
+        this.webSocketClientsByUserId = {};
+        this.remoteControlIdsByUserId = {};
+        this.userIdsByToken = {};
         this.defaultUserName = 'human';
         this.bitly = new Bitly(bitlyAccessToken);
     }
@@ -61,9 +61,9 @@ class EventBot {
     }
 
     onWebSocketClientDisconnect(client) {
-        for (let key in this.clientsById) {
-            if (this.clientsById[key] == client) {
-                delete this.clientsById[key];
+        for (let key in this.webSocketClientsByUserId) {
+            if (this.webSocketClientsByUserId[key] == client) {
+                delete this.webSocketClientsByUserId[key];
                 break;
             }
         }
@@ -74,85 +74,89 @@ class EventBot {
             this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
         }
         else {
-            this.getClientIdForToken(msg.token)
-                .then((clientId) => {
-                    this.setClientIdForToken(msg.token, clientId);
-                    this.processWebSocketClientMessageForClient(client, msg, clientId);
+            this.getUserIdForToken(msg.token)
+                .then((userId) => {
+                    this.setUserIdForToken(msg.token, userId);
+                    this.processWebSocketClientMessageForClient(client, msg, userId);
                 });
         }
     }
 
-    processWebSocketClientMessageForClient(client, msg, clientId) {
-        this.clientsById[clientId] = client;
+    processWebSocketClientMessageForClient(client, msg, userId) {
+        this.webSocketClientsByUserId[userId] = client;
         if (msg.startOver) {
-            this.clearUserStateForUser(clientId);
+            this.clearUserStateForUser(userId);
         }
         if (msg.type == 'msg') {
-            // get or create state for the user
+            // look for a phone number to push the conversation to a phone via text messaging/mobile app
             if (msg.text.toLowerCase().startsWith('p:')) {
                 let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
                 let data = {
                     user: phoneNumber,
                     text: 'hi'
                 };
+                let user = null;
                 this.userStore.getUserForId(phoneNumber)
-                    .then((user) => {
-                        if (!user) {
-                            // create a new user - generate a token (uuid)
-                            return this.userStore.addUser(phoneNumber, uuidV4())
+                    .then((userDoc) => {
+                        if (!userDoc) {
+                            // create a new user
+                            // use the phoneNumber as the ID and generate a token
+                            let token = uuidV4();
+                            return this.userStore.addUser(phoneNumber, token);
                         }
                         else {
                             return Promise.resolve(user);
                         }
                     })
-                    .then((user) => {
-                        this.setClientIdForToken(user.token, user._id);
-                        this.setClientIdForPhoneNumber(data.user, clientId);
+                    .then((userDoc) => {
+                        user = userDoc;
+                        this.setUserIdForToken(user.token, user._id);
+                        this.setRemoteControlForUserId(data.user, userId);
                         this.clearUserStateForUser(data.user);
-                        this.processMessage(data)
-                            .then((reply) => {
-                                if (reply.points) {
-                                    this.sendMapMessageToClient(client, reply);
-                                }
-                                else {
-                                    this.sendTextMessageToClient(client, reply);
-                                }
-                                let url = this.baseUrl + '/chat?token=' + encodeURIComponent(user.token);
-                                return this.bitly.shorten(url)
-                                    .then((response) => {
-                                        let text = reply.text.replace(/\s+$/g, '');
-                                        text += ' You can send text messages to me directly, or go here: ';
-                                        text += response.data.url;
-                                        return this.sendTextMessage(data.user, text);
-                                    });
+                        return this.processMessage(data);
+                    })
+                    .then((reply) => {
+                        if (reply.points) {
+                            this.sendMapMessageToClient(client, reply);
+                        }
+                        else {
+                            this.sendTextMessageToClient(client, reply);
+                        }
+                        let url = this.baseUrl + '/chat?token=' + encodeURIComponent(user.token);
+                        return this.bitly.shorten(url)
+                            .then((response) => {
+                                let text = reply.text.replace(/\s+$/g, '');
+                                text += ' You can send text messages to me directly, or go here: ';
+                                text += response.data.url;
+                                return this.sendTextMessage(data.user, text);
                             });
                     });
             }
             else {
                 let data = {
-                    user: clientId,
+                    user: userId,
                     text: msg.text
                 };
-                let phoneNumberSet = this.removePhoneNumbersForClientId(clientId);
-                if (phoneNumberSet) {
+                let remoteControlId = null;
+                let remoteControlEnabled = this.removeRemoteControl(data.user);
+                if (remoteControlEnabled) {
                     this.clearUserStateForUser(data.user);
                 }
                 let contextVars = {skip_name: true};
-                let controlClientId = null;
                 if (msg.mobile) {
                     // on mobile we ask for the user's name
                     contextVars = null;
                     // if this is controlling another client update that client
-                    controlClientId = this.getClientIdForPhoneNumber(data.user);
-                    if (controlClientId) {
-                        this.sendInputMessageToClientId(controlClientId, data.text, data.user);
+                    remoteControlId = this.getRemoteControlForUserId(data.user);
+                    if (remoteControlId) {
+                        this.sendInputMessageToUserId(remoteControlId, data.text, data.user);
                     }
                 }
                 this.processMessage(data, contextVars)
                     .then((reply) => {
-                        if (msg.mobile && controlClientId) {
+                        if (msg.mobile && remoteControlId) {
                             // if this is controlling another client update that client
-                            this.sendOutputMessageToClientId(controlClientId, reply);
+                            this.sendOutputMessageToUserId(remoteControlId, reply);
                         }
                         if (reply.points) {
                             this.sendMapMessageToClient(client, reply);
@@ -168,13 +172,13 @@ class EventBot {
         }
     }
 
-    setClientIdForToken(token, clientId) {
-        this.clientIdsByToken[token] = clientId;
+    setUserIdForToken(token, userId) {
+        this.userIdsByToken[token] = userId;
     }
 
-    getClientIdForToken(token) {
-        let clientId = this.clientIdsByToken[token];
-        if (! clientId) {
+    getUserIdForToken(token) {
+        let userId = this.userIdsByToken[token];
+        if (! userId) {
             return this.userStore.getUserForToken(token)
                 .then((user) => {
                     if (user) {
@@ -186,27 +190,27 @@ class EventBot {
                 });
         }
         else {
-            return Promise.resolve(clientId);
+            return Promise.resolve(userId);
         }
     }
 
-    setClientIdForPhoneNumber(phoneNumber, clientId) {
-        this.clientIdsByPhoneNumber[phoneNumber] = clientId;
+    setRemoteControlForUserId(userId, remoteControlUserId) {
+        this.remoteControlIdsByUserId[userId] = remoteControlUserId;
     }
 
-    getClientIdForPhoneNumber(phoneNumber) {
-        return this.clientIdsByPhoneNumber[phoneNumber];
+    getRemoteControlForUserId(userId) {
+        return this.remoteControlIdsByUserId[userId];
     }
 
-    removePhoneNumbersForClientId(clientId) {
-        let phoneNumberSet = false;
-        for(let key in this.clientIdsByPhoneNumber) {
-            if (this.clientIdsByPhoneNumber[key] == clientId) {
-                delete this.clientIdsByPhoneNumber[key];
-                phoneNumberSet = true;
+    removeRemoteControl(userId) {
+        let remoteControlEnabled = false;
+        for(let key in this.remoteControlIdsByUserId) {
+            if (this.remoteControlIdsByUserId[key] == userId) {
+                delete this.remoteControlIdsByUserId[key];
+                remoteControlEnabled = true;
             }
         }
-        return phoneNumberSet;
+        return remoteControlEnabled;
     }
 
     sendTextMessageToClient(client, message) {
@@ -217,20 +221,20 @@ class EventBot {
         this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points, url:message.url});
     }
 
-    sendOutputMessageToClientId(clientId, message) {
-        if (this.clientsById[clientId]) {
+    sendOutputMessageToUserId(userId, message) {
+        if (this.webSocketClientsByUserId[userId]) {
             if (message.points) {
-                this.sendMapMessageToClient(this.clientsById[clientId], message);
+                this.sendMapMessageToClient(this.webSocketClientsByUserId[userId], message);
             }
             else {
-                this.sendTextMessageToClient(this.clientsById[clientId], message);
+                this.sendTextMessageToClient(this.webSocketClientsByUserId[userId], message);
             }
         }
     }
 
-    sendInputMessageToClientId(clientId, text, username) {
-        if (this.clientsById[clientId]) {
-            this.webSocketBot.sendMessageToClient(this.clientsById[clientId], {type: 'input', text:text, username:username});
+    sendInputMessageToUserId(userId, text, username) {
+        if (this.webSocketClientsByUserId[userId]) {
+            this.webSocketBot.sendMessageToClient(this.webSocketClientsByUserId[userId], {type: 'input', text:text, username:username});
         }
     }
 

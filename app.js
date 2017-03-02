@@ -109,50 +109,20 @@ app.get('/eventList', (req, res) => {
     });
 });
 
-app.get('/control', (req, res) => {
-    const clientId = req.query.clientId;
-    let phoneNumber = req.query.phone;
-    if (phoneNumber) {
-        phoneNumber = eventBot.formatPhoneNumber(phoneNumber);
-        eventBot.setClientIdForPhoneNumber(phoneNumber, clientId);
-        let data = {
-            user: phoneNumber,
-            text: 'hi'
-        };
-        eventBot.clearUserStateForUser(data.user);
-        eventBot.processMessage(data)
-            .then((reply) => {
-                eventBot.sendOutputMessageToClientId(clientId, reply);
-                return eventBot.sendTextMessage(phoneNumber, reply.text);
-            })
-            .then(() => {
-                res.send('OK');
-            })
-            .catch((err) => {
-                res.send(`Error: ${err}`);
-            });
-    }
-    else if (clientId) {
-        eventBot.removePhoneNumbersForClientId(clientId);
-        res.send('OK');
-    }
-
-});
-
 app.get('/sms', (req, res) => {
     let data = {
         user: req.query.From,
         text: req.query.Body
     };
-    const clientId = eventBot.getClientIdForPhoneNumber(data.user);
-    if (clientId) {
-        eventBot.sendInputMessageToClientId(clientId, data.text, data.user);
+    const remoteControlId = eventBot.getRemoteControlForUserId(data.user);
+    if (remoteControlId) {
+        eventBot.sendInputMessageToUserId(remoteControlId, data.text, data.user);
     }
     eventBot.processMessage(data, {skip_name: true})
         .then((reply) => {
             res.setHeader('Content-Type', 'text/plain');
-            if (clientId) {
-                eventBot.sendOutputMessageToClientId(clientId, reply);
+            if (remoteControlId) {
+                eventBot.sendOutputMessageToUserId(remoteControlId, reply);
             }
             if (reply.points) {
                 // clear user state
