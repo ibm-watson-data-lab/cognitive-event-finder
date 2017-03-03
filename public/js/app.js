@@ -214,7 +214,10 @@ var app = new Vue({
                     "source": 'locations',
                     "layout": {
                         "icon-image": "doc-icon",
-                        "icon-size": 0.3
+                        "icon-size": {
+                            "stops": [ [7, 0.3], [15, 0.6] ]
+                        },
+                        "icon-allow-overlap: true
                     }
                 }, 'events-label');
             }
