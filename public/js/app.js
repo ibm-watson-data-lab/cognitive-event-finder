@@ -230,9 +230,11 @@ var app = new Vue({
                             "DIN Offc Pro Medium",
                             "Arial Unicode MS Bold"
                         ],
-                        "text-size": 12
+                        "text-size": 14,
+                        "text-offset": [0,-2],
+                        "text-allow-overlap: true
                     }
-                });
+                }, 'events-label');
             }
 
             if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
