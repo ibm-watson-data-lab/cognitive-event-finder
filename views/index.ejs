@@ -2,7 +2,6 @@
 <head>
     <meta name="theme-color" content="#5aaafa">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet">
     <link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
     <link rel="stylesheet" href="css/master.css">
     <link rel="stylesheet" href="css/vis.min.css">
@@ -18,11 +17,10 @@
 
 <body>
 <header class="app-banner col12 contain">
-    <img src="img/ibm_glyph.png" id="watson_glyph" class='right-fit-flex'>
     <img src="img/Watson_Avatar_Rev_RGB.png" id="watson_avatar_banner">
     <div id="app-banner-title">
-        <div id="app-banner-title-head">personal_</div>
-        <div id="app-banner-title-subhead">SxSW event finder by IBM Watson</div>
+        <div id="app-banner-title-head">SxSW personal<span class="cursor"></span></div>
+        <div id="app-banner-title-subhead">by IBM Watson</div>
     </div>
 </header>
 <div id="container" class="container">
@@ -34,11 +32,13 @@
     <div id='app'>
         <div id="convo-section" class='sidebar'>
             <div class='sidebar-inner'>
-                <div class="chat-message" v-for="msg in messages">
-                    <div class="msg-body" v-bind:style="msg.msgStyle">
-                        <div v-bind:style="msg.userStyle" class="msg-user" v-html="msg.user"></div>
-                        <div class="msg-chat bubble" v-bind:class="[msg.isUser ? 'userBubble' : '']">
-                            <chat-message :key="msg.key" :msg="msg"></chat-message>
+                <div id="chat-messages">
+                    <div class="chat-message" v-for="msg in messages">
+                        <div class="msg-body" v-bind:style="msg.msgStyle">
+                            <div v-bind:style="msg.userStyle" class="msg-user" v-html="msg.user"></div>
+                            <div class="msg-chat bubble" v-bind:class="[msg.isUser ? 'userBubble' : '']">
+                                <chat-message :key="msg.key" :msg="msg"></chat-message>
+                            </div>
                         </div>
                     </div>
                 </div>
