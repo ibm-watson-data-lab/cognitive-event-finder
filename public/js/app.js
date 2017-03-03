@@ -217,7 +217,7 @@ var app = new Vue({
                         "icon-size": {
                             "stops": [ [7, 0.3], [15, 0.6] ]
                         },
-                        "icon-allow-overlap: true
+                        "icon-allow-overlap": true
                     }
                 }, 'events-label');
             }
@@ -235,7 +235,7 @@ var app = new Vue({
                         ],
                         "text-size": 14,
                         "text-offset": [0,-2],
-                        "text-allow-overlap: true
+                        "text-allow-overlap": true
                     }
                 }, 'events-label');
             }
