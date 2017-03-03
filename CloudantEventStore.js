@@ -37,7 +37,7 @@ class CloudantEventStore {
                                 index: 'function (doc) { \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n}'
                             },
                             by_music_topic: {
-                                index: 'function (doc) { \nif (doc.music) { \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 5}); \n} \n} \n}'
+                                index: 'function (doc) { \nif (doc.music) { \nif (doc.genre) { \nindex("genre", doc.genre, {boost: 5}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 5}); \n} \n} \n} \n}'
                             },
                             by_music_artist: {
                                 index: 'function (doc) { \nif (doc.music) { \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {}); \n} \n} \n} \n}'
@@ -89,7 +89,7 @@ class CloudantEventStore {
      * @returns {Promise.<TResult>}
      */
     findMusicEventsByTopic(searchStr, count) {
-        var query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr} OR artist:${searchStr}`;
+        var query = `name:${searchStr} OR description:${searchStr} OR genre:${searchStr} OR artist:${searchStr}`;
         return this.findEvents('search', 'by_music_topic', query, count);
     }
 
