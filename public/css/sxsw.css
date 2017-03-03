@@ -230,7 +230,7 @@ html {
 
 .msg-chat ul {
     list-style: initial;
-    padding-left: 2em;
+    padding-left: 1.2em;
 }
 
 .chat-message {
@@ -244,24 +244,9 @@ html {
     min-height: 1.5em;
     padding: 6px 12px;
     background: #56A8FD;
-    /*border: #7F7F7F solid 4px;*/
     -webkit-border-radius: 16px;
-    -moz-border-radius: 16px;
     border-radius: 16px;
 }
-
-/*.bubble:after {
-    content: "";
-    position: absolute;
-    bottom: -15px;
-    left: 10%;
-    border-style: solid;
-    border-width: 15px 15px 0;
-    border-color: #FFFFFF transparent;
-    display: block;
-    width: 0;
-    z-index: 1;
-}*/
 
 .bubble:before {
     content: "";
@@ -283,4 +268,25 @@ html {
 .userBubble {
     margin-right: 12px;
     float: right;
+}
+
+.cursor {
+    background: url('https://www.ibm.com/design/sxsw/assets/svg/cursor.svg') no-repeat;
+    display: inline-block;
+    vertical-align: bottom;
+    width: 48px;
+    height: 4px;
+    top: -9px;
+    animation: blink 1s infinite;
+    margin-left: 2px;
+}
+
+#chat-messages {
+    height: calc(100% - 36px);
+    overflow-y: scroll;
+}
+
+#convo-section {
+    -webkit-box-shadow: 2px 2px 2px 2px rgba(128,128,128,0.5);
+    box-shadow: 2px 2px 2px 2px rgba(128,128,128,0.5);
 }

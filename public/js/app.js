@@ -1,7 +1,7 @@
 var botUsername = '<img class="watson_avatar" src="img/Watson_Avatar_Rev_RGB.png">'; //'bot';
 var popup = new mapboxgl.Popup({
     closeButton: false,
-    closeOnClick: true
+    closeOnClick: false
 });
 var map;
 
@@ -32,7 +32,9 @@ var app = new Vue({
                     'padding-right': '0px',
                     'width': '28px'
                 },
-                msgStyle: {}
+                msgStyle: {
+                    'overflow': 'auto'
+                }
             });
             app.sendMessage(app.message, false);
             app.message = '';
@@ -112,6 +114,9 @@ var app = new Vue({
                             },
                             msgStyle: {}
                         });
+                        Vue.nextTick(() => { // scroll down
+                            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+                        });
                         if (data.type == 'map') {
                             app.updateMap(data);
                         }
@@ -134,7 +139,7 @@ var app = new Vue({
                         });
                         app.message = '';
                     } else if (data.type == 'ping') {
-                        console.log('Received ping.');
+                        // console.log('Received ping.');
                     }
                 };
                 app.webSocket.onclose = function() {
@@ -191,8 +196,8 @@ var app = new Vue({
                 return
             }
 
-            var bbox = turf.bbox(geoj)
-            console.log(bbox)
+            var bbox = turf.bbox(geoj);
+            // console.log("geoj bbox: " + bbox);
 
             if (!map.getSource('locations')) {
                 map.addSource('locations', {
@@ -252,7 +257,7 @@ var app = new Vue({
                 }
             }
 
-            map.on('mousemove', function(e) {
+            map.on('click', function(e) {
                 let buffer = 3
                 minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
                 maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
@@ -266,7 +271,7 @@ var app = new Vue({
                     return;
                 };
 
-                console.log(fs)
+                // console.log(fs);
 
                 if (fs.length > 1) {
                     popuphtml = "";
@@ -283,14 +288,16 @@ var app = new Vue({
                     popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
                 } else {
                     var f = fs[0];
-                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                    popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
-                    var desc = f.properties.description;
-                    if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
-                    if (f.properties.img_url && f.properties.img_url != 'undefined')
-                        popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
-                    popuphtml += desc + "</div>";
-                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    if (!f.properties.cluster) {
+                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
+                        popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                        var desc = f.properties.description;
+                        if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
+                        if (f.properties.img_url && f.properties.img_url != 'undefined')
+                            popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
+                        popuphtml += desc + "</div>";
+                        popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                    }
                 }
             });
         }
