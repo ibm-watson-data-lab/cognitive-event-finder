@@ -125,8 +125,6 @@ app.get('/sms', (req, res) => {
                 eventBot.sendOutputMessageToUserId(remoteControlId, reply);
             }
             if (reply.points) {
-                // clear user state
-                eventBot.clearUserStateForUser(data.user);
                 // send
                 let body = 'Tap here to see some matching events: ' + reply.url;
                 res.send(body);

@@ -160,9 +160,6 @@ class EventBot {
                         }
                         if (reply.points) {
                             this.sendMapMessageToClient(client, reply);
-                            if (msg.mobile) {
-                                this.clearUserStateForUser(data.user);
-                            }
                         }
                         else {
                             this.sendTextMessageToClient(client, reply);
@@ -288,7 +285,6 @@ class EventBot {
             context: state.conversationContext,
             workspace_id: this.conversationWorkspaceId,
         };
-        let restart = false;
         return this.sendRequestToConversation(request)
             .then((response) => {
                 state.conversationContext = response.context;
@@ -296,21 +292,8 @@ class EventBot {
                 if (! action) {
                     action = 'start_search';
                 }
-                if (action == 'start_over') {
-                    restart = true;
-                    return this.handleGenericMessage(state, response, message);
-                }
-                else if (action == 'skip_name') {
-                    return this.handleSkipNameMessage(state, response, message);
-                }
-                else if (action == 'get_name') {
+                if (action == 'get_name') {
                     return this.handleGetNameMessage(state, response, message);
-                }
-                else if (action == 'get_search_type') {
-                    return this.handleGetSearchTypeMessage(state, response, message);
-                }
-                else if (action == 'search_retry') {
-                    return this.handleSearchRetryMessage(state, response, message);
                 }
                 else if (action == 'recent_searches') {
                     return this.handleRecentSearches(state, response, message);
@@ -318,37 +301,20 @@ class EventBot {
                 else if (action == 'recent_search_selected') {
                     return this.handleRecentSearchSelected(state, response, message);
                 }
-                else if (action == 'recent_search_invalid_selection') {
-                    return this.handleRecentSearchInvalidSelection(state, response, message);
-                }
                 else if (action == 'search_suggestion') {
                     return this.handleSearchSuggestionMessage(state, response, message);
-                }
-                else if (action == 'get_topic') {
-                    return this.handleGetTopicMessage(state, response, message);
                 }
                 else if (action == 'search_topic') {
                     return this.handleSearchTopicMessage(state, response, message);
                 }
-                else if (action == 'get_speaker') {
-                    return this.handleGetSpeakerMessage(state, response, message);
-                }
                 else if (action == 'search_speaker') {
                     return this.handleSearchSpeakerMessage(state, response, message);
                 }
-                else if (action == 'finish_no_text') {
-                    restart = true;
-                    return this.handleNoTextMessage(state, response, message);
-                }
-                else if (action == 'get_phone_number') {
-                    return this.handleGetPhoneNumberMessage(state, response);
-                }
                 else if (action == 'text') {
-                    restart = true;
                     return this.handleTextMessage(state, response, message);
                 }
                 else {
-                    return this.handleGenericMessage(state, response, message);
+                    return this.handleGenericActionMessage(state, response, message, action);
                 }
             })
             .then((reply) => {
@@ -358,10 +324,6 @@ class EventBot {
                 else {
                     if ((typeof reply) == 'string') {
                         reply = this.searchReplaceReply(reply, state);
-                        if (restart) {
-                            this.clearUserState(state);
-                        }
-                        // set username after clearing
                         reply = {
                             text: reply,
                             username: state.username
@@ -369,10 +331,6 @@ class EventBot {
                     }
                     else {
                         reply.text = this.searchReplaceReply(reply.text, state);
-                        if (restart) {
-                            this.clearUserState(state);
-                        }
-                        // set username after clearing
                         reply.username = state.username;
                     }
                     return Promise.resolve(reply);
@@ -408,17 +366,8 @@ class EventBot {
         return reply.replace(/__Name__/g, name);
     }
 
-    handleGenericMessage(state, response, message) {
-        this.logDialog(state, "start", message, true);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleSkipNameMessage(state, response, message) {
-        this.logDialog(state, "skip_name", message, true);
+    handleGenericActionMessage(state, response, message, action) {
+        this.logDialog(state, action, message, true);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -437,24 +386,6 @@ class EventBot {
                 }
                 return Promise.resolve(reply);
             });
-    }
-
-    handleGetSearchTypeMessage(state, response, message) {
-        this.logDialog(state, "get_search_type", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleSearchRetryMessage(state, response, message) {
-        this.logDialog(state, "search_retry", message, true);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
     }
 
     handleRecentSearches(state, response, message) {
@@ -513,24 +444,6 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleRecentSearchInvalidSelection(state, response, message) {
-        this.logDialog(state, "recent_search_invalid_selection", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleGetSpeakerMessage(state, response, message) {
-        this.logDialog(state, "get_speaker", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
     handleSearchSpeakerMessage(state, response, message) {
         this.logDialog(state, "search_speaker", message, false);
         state.conversationContext['search_no_results'] = false;
@@ -577,15 +490,6 @@ class EventBot {
                     return Promise.resolve(reply);
                 }
             });
-    }
-
-    handleGetTopicMessage(state, response, message) {
-        this.logDialog(state, "get_topic", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
     }
 
     handleSearchTopicMessage(state, response, message) {
@@ -683,24 +587,6 @@ class EventBot {
             });
     }
 
-    handleNoTextMessage(state, response, message) {
-        this.logDialog(state, "no_text", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleGetPhoneNumberMessage(state, response, message) {
-        this.logDialog(state, "get_phone_number", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
@@ -721,8 +607,6 @@ class EventBot {
         console.log(`Sending ${body} to ${phoneNumber}...`);
         return this.sendTextMessage(phoneNumber, body)
             .then(() => {
-                // clear user state - end of conversation
-                this.clearUserState(state);
                 let reply = '';
                 for (let i = 0; i < response.output['text'].length; i++) {
                     reply += response.output['text'][i] + '\n';
@@ -802,7 +686,6 @@ class EventBot {
         // they are used for logging which is done asynchronously
         state.lastReply = null;
         state.conversationContext = {};
-        state.conversationStarted = false;
     }
 
     clearUserStateForUser(userId) {
