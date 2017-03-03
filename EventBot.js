@@ -3,12 +3,14 @@
 const ConversationV1 = require('watson-developer-cloud/conversation/v1');
 const WebSocketBot = require('./WebSocketBot');
 const uuidV4 = require('uuid/v4');
+const Bitly = require('bitly');
 
 class EventBot {
 
-    constructor(eventStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl) {
+    constructor(eventStore, userStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
         this.userStateMap = {};
         this.eventStore = eventStore;
+        this.userStore = userStore;
         this.dialogStore = dialogStore;
         this.twilioClient = twilioClient;
         this.twilioPhoneNumber = twilioPhoneNumber;
@@ -20,13 +22,18 @@ class EventBot {
         this.conversationWorkspaceId = conversationWorkspaceId;
         this.httpServer = httpServer;
         this.baseUrl = baseUrl;
-        this.clientsById = {};
-        this.clientIdsByPhoneNumber = {};
+        this.webSocketClientsByUserId = {};
+        this.remoteControlIdsByUserId = {};
+        this.userIdsByToken = {};
         this.defaultUserName = 'human';
+        this.bitly = new Bitly(bitlyAccessToken);
     }
 
     run() {
         this.eventStore.init()
+            .then(() => {
+                return this.userStore.init();
+            })
             .then(() => {
                 return this.dialogStore.init();
             })
@@ -46,83 +53,162 @@ class EventBot {
             console.log('Web socket is connected and running!')
         });
         this.webSocketBot.on('disconnect', (client) => {
-            for (let key in this.clientsById) {
-                if (this.clientsById[key] == client) {
-                    delete this.clientsById[key];
-                    break;
-                }
-            }
+            this.onWebSocketClientDisconnect(client);
         });
         this.webSocketBot.on('message', (client, msg) => {
-            let clientId = msg.clientId;
-            if (! clientId) {
-                clientId = uuidV4();
-            }
-            this.clientsById[clientId] = client;
-            if (msg.type == 'msg') {
-                // get or create state for the user
-                if (msg.text.toLowerCase().startsWith('p:')) {
-                    let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
-                    let data = {
-                        user: phoneNumber,
-                        text: 'hi'
-                    };
-                    this.setClientIdForPhoneNumber(data.user, clientId);
-                    this.clearUserStateForUser(data.user);
-                    this.processMessage(data, {skip_name: true})
-                        .then((reply) => {
-                            if (reply.points) {
-                                this.sendMapMessageToClient(client, reply);
-                            }
-                            else {
-                                this.sendTextMessageToClient(client, reply);
-                            }
-                            return this.sendTextMessage(data.user, reply.text);
-                        });
-                }
-                else {
-                    let data = {
-                        user: clientId,
-                        text: msg.text
-                    };
-                    let phoneNumberSet = this.removePhoneNumbersForClientId(clientId);
-                    if (phoneNumberSet) {
-                        this.clearUserStateForUser(data.user);
-                    }
-                    this.processMessage(data)
-                        .then((reply) => {
-                            if (reply.points) {
-                                this.sendMapMessageToClient(client, reply);
-                            }
-                            else {
-                                this.sendTextMessageToClient(client, reply);
-                            }
-                        });
-                }
-            }
-            else if (msg.type == 'ping') {
-                this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
-            }
+            this.onWebSocketClientMessage(client, msg)
         });
     }
 
-    setClientIdForPhoneNumber(phoneNumber, clientId) {
-        this.clientIdsByPhoneNumber[phoneNumber] = clientId;
-    }
-
-    getClientIdForPhoneNumber(phoneNumber) {
-        return this.clientIdsByPhoneNumber[phoneNumber];
-    }
-
-    removePhoneNumbersForClientId(clientId) {
-        let phoneNumberSet = false;
-        for(let key in this.clientIdsByPhoneNumber) {
-            if (this.clientIdsByPhoneNumber[key] == clientId) {
-                delete this.clientIdsByPhoneNumber[key];
-                phoneNumberSet = true;
+    onWebSocketClientDisconnect(client) {
+        for (let key in this.webSocketClientsByUserId) {
+            if (this.webSocketClientsByUserId[key] == client) {
+                delete this.webSocketClientsByUserId[key];
+                break;
             }
         }
-        return phoneNumberSet;
+    }
+
+    onWebSocketClientMessage(client, msg) {
+        if (msg.type == 'ping') {
+            this.webSocketBot.sendMessageToClient(client, {type: 'ping'});
+        }
+        else {
+            this.getUserIdForToken(msg.token)
+                .then((userId) => {
+                    this.setUserIdForToken(msg.token, userId);
+                    this.processWebSocketClientMessageForClient(client, msg, userId);
+                });
+        }
+    }
+
+    processWebSocketClientMessageForClient(client, msg, userId) {
+        this.webSocketClientsByUserId[userId] = client;
+        if (msg.startOver) {
+            this.clearUserStateForUser(userId);
+        }
+        if (msg.type == 'msg') {
+            // look for a phone number to push the conversation to a phone via text messaging/mobile app
+            if (msg.text.toLowerCase().startsWith('p:')) {
+                let remoteControlUserId = userId;
+                let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
+                let data = {
+                    user: phoneNumber,
+                    text: 'hi'
+                };
+                let user = null;
+                this.userStore.getUserForId(phoneNumber)
+                    .then((userDoc) => {
+                        if (!userDoc) {
+                            // create a new user
+                            // use the phoneNumber as the ID and generate a token
+                            let token = uuidV4();
+                            return this.userStore.addUser(phoneNumber, token);
+                        }
+                        else {
+                            return Promise.resolve(userDoc);
+                        }
+                    })
+                    .then((userDoc) => {
+                        user = userDoc;
+                        this.setUserIdForToken(user.token, user._id);
+                        this.setRemoteControlForUserId(data.user, remoteControlUserId);
+                        this.clearUserStateForUser(data.user);
+                        return this.processMessage(data);
+                    })
+                    .then((reply) => {
+                        if (reply.points) {
+                            this.sendMapMessageToClient(client, reply);
+                        }
+                        else {
+                            this.sendTextMessageToClient(client, reply);
+                        }
+                        let url = this.baseUrl + '/chat?token=' + encodeURIComponent(user.token);
+                        return this.bitly.shorten(url)
+                            .then((response) => {
+                                let text = reply.text.replace(/\s+$/g, '');
+                                text += ' You can send text messages to me directly, or go here: ';
+                                text += response.data.url;
+                                return this.sendTextMessage(data.user, text);
+                            });
+                    });
+            }
+            else {
+                let data = {
+                    user: userId,
+                    text: msg.text
+                };
+                let remoteControlId = null;
+                let remoteControlEnabled = this.removeRemoteControl(data.user);
+                if (remoteControlEnabled) {
+                    this.clearUserStateForUser(data.user);
+                }
+                let contextVars = {skip_name: true};
+                if (msg.mobile) {
+                    // on mobile we ask for the user's name
+                    contextVars = null;
+                    // if this is controlling another client update that client
+                    remoteControlId = this.getRemoteControlForUserId(data.user);
+                    if (remoteControlId) {
+                        this.sendInputMessageToUserId(remoteControlId, data.text, data.user);
+                    }
+                }
+                this.processMessage(data, contextVars)
+                    .then((reply) => {
+                        if (msg.mobile && remoteControlId) {
+                            // if this is controlling another client update that client
+                            this.sendOutputMessageToUserId(remoteControlId, reply);
+                        }
+                        if (reply.points) {
+                            this.sendMapMessageToClient(client, reply);
+                        }
+                        else {
+                            this.sendTextMessageToClient(client, reply);
+                        }
+                    });
+            }
+        }
+    }
+
+    setUserIdForToken(token, userId) {
+        this.userIdsByToken[token] = userId;
+    }
+
+    getUserIdForToken(token) {
+        let userId = this.userIdsByToken[token];
+        if (! userId) {
+            return this.userStore.getUserForToken(token)
+                .then((user) => {
+                    if (user) {
+                        return Promise.resolve(user._id);
+                    }
+                    else {
+                        return Promise.resolve(uuidV4());
+                    }
+                });
+        }
+        else {
+            return Promise.resolve(userId);
+        }
+    }
+
+    setRemoteControlForUserId(userId, remoteControlUserId) {
+        this.remoteControlIdsByUserId[userId] = remoteControlUserId;
+    }
+
+    getRemoteControlForUserId(userId) {
+        return this.remoteControlIdsByUserId[userId];
+    }
+
+    removeRemoteControl(userId) {
+        let remoteControlEnabled = false;
+        for(let key in this.remoteControlIdsByUserId) {
+            if (this.remoteControlIdsByUserId[key] == userId) {
+                delete this.remoteControlIdsByUserId[key];
+                remoteControlEnabled = true;
+            }
+        }
+        return remoteControlEnabled;
     }
 
     sendTextMessageToClient(client, message) {
@@ -130,38 +216,64 @@ class EventBot {
     }
 
     sendMapMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points});
+        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points, url:message.url});
     }
 
-    sendOutputMessageToClientId(clientId, message) {
-        if (this.clientsById[clientId]) {
+    sendOutputMessageToUserId(userId, message) {
+        if (this.webSocketClientsByUserId[userId]) {
             if (message.points) {
-                this.sendMapMessageToClient(this.clientsById[clientId], message);
+                this.sendMapMessageToClient(this.webSocketClientsByUserId[userId], message);
             }
             else {
-                this.sendTextMessageToClient(this.clientsById[clientId], message);
+                this.sendTextMessageToClient(this.webSocketClientsByUserId[userId], message);
             }
         }
     }
 
-    sendInputMessageToClientId(clientId, text, username) {
-        if (this.clientsById[clientId]) {
-            this.webSocketBot.sendMessageToClient(this.clientsById[clientId], {type: 'input', text:text, username:username});
+    sendInputMessageToUserId(userId, text, username) {
+        if (this.webSocketClientsByUserId[userId]) {
+            this.webSocketBot.sendMessageToClient(this.webSocketClientsByUserId[userId], {type: 'input', text:text, username:username});
         }
     }
 
     processMessage(data, contextVars) {
         let message = data.text;
-        let messageSender = data.user;
-        let state = this.userStateMap[messageSender];
-        if (!state) {
-            state = {
-                userId: messageSender,
-                conversationContext: {},
-                dialogQueue: []
-            };
-            this.userStateMap[messageSender] = state;
+        let userId = data.user;
+        let state = this.userStateMap[userId];
+        if (! contextVars) {
+            contextVars = {};
         }
+        if (!state) {
+            return this.userStore.getUserForId(userId)
+                .then((user) => {
+                    let name = null;
+                    if (user) {
+                        name = user.name;
+                    }
+                    state = {
+                        userId: userId,
+                        username: name,
+                        conversationContext: {},
+                        dialogQueue: []
+                    };
+                    this.userStateMap[userId] = state;
+                    if (name) {
+                        contextVars['returning_user'] = true;
+                    }
+                    return this.processMessageForUser(message, state, contextVars);
+                });
+        }
+        else {
+            let returningUser = false;
+            if (state.username) {
+                returningUser = true;
+            }
+            contextVars['returning_user'] = returningUser;
+            return this.processMessageForUser(message, state, contextVars);
+        }
+    }
+
+    processMessageForUser(message, state, contextVars) {
         // add additional contextVars
         if (contextVars) {
             for (let key in contextVars) {
@@ -174,7 +286,6 @@ class EventBot {
             context: state.conversationContext,
             workspace_id: this.conversationWorkspaceId,
         };
-        let restart = false;
         return this.sendRequestToConversation(request)
             .then((response) => {
                 state.conversationContext = response.context;
@@ -182,18 +293,8 @@ class EventBot {
                 if (! action) {
                     action = 'start_search';
                 }
-                if (action == 'start_over') {
-                    restart = true;
-                    return this.handleGenericMessage(state, response, message);
-                }
-                else if (action == 'skip_name') {
-                    return this.handleSkipNameMessage(state, response, message);
-                }
-                else if (action == 'get_name') {
+                if (action == 'get_name') {
                     return this.handleGetNameMessage(state, response, message);
-                }
-                else if (action == 'search_retry') {
-                    return this.handleSearchRetryMessage(state, response, message);
                 }
                 else if (action == 'recent_searches') {
                     return this.handleRecentSearches(state, response, message);
@@ -201,50 +302,35 @@ class EventBot {
                 else if (action == 'recent_search_selected') {
                     return this.handleRecentSearchSelected(state, response, message);
                 }
-                else if (action == 'recent_search_invalid_selection') {
-                    return this.handleRecentSearchInvalidSelection(state, response, message);
-                }
-                else if (action == 'search_suggestion') {
-                    return this.handleSearchSuggestionMessage(state, response, message);
-                }
-                else if (action == 'get_topic') {
-                    return this.handleGetTopicMessage(state, response, message);
-                }
                 else if (action == 'search_topic') {
                     return this.handleSearchTopicMessage(state, response, message);
-                }
-                else if (action == 'get_speaker') {
-                    return this.handleGetSpeakerMessage(state, response, message);
                 }
                 else if (action == 'search_speaker') {
                     return this.handleSearchSpeakerMessage(state, response, message);
                 }
-                else if (action == 'finish_no_text') {
-                    restart = true;
-                    return this.handleNoTextMessage(state, response, message);
+                else if (action == 'search_suggestion') {
+                    return this.handleSearchSuggestionMessage(state, response, message);
                 }
-                else if (action == 'get_phone_number') {
-                    return this.handleGetPhoneNumberMessage(state, response);
+                else if (action == 'search_music_topic') {
+                    return this.handleSearchMusicTopicMessage(state, response, message);
+                }
+                else if (action == 'search_music_artist') {
+                    return this.handleSearchMusicArtistMessage(state, response, message);
                 }
                 else if (action == 'text') {
-                    restart = true;
                     return this.handleTextMessage(state, response, message);
                 }
                 else {
-                    return this.handleGenericMessage(state, response, message);
+                    return this.handleGenericActionMessage(state, response, message, action);
                 }
             })
             .then((reply) => {
                 if (reply.moveToNextDialog) {
-                    return this.processMessage({user:data.user, text:reply.nextDialogInputText}, reply.nextDialogContextVars);
+                    return this.processMessage({user:state.userId, text:reply.nextDialogInputText}, reply.nextDialogContextVars);
                 }
                 else {
                     if ((typeof reply) == 'string') {
                         reply = this.searchReplaceReply(reply, state);
-                        if (restart) {
-                            this.clearUserState(state);
-                        }
-                        // set username after clearing
                         reply = {
                             text: reply,
                             username: state.username
@@ -252,10 +338,6 @@ class EventBot {
                     }
                     else {
                         reply.text = this.searchReplaceReply(reply.text, state);
-                        if (restart) {
-                            this.clearUserState(state);
-                        }
-                        // set username after clearing
                         reply.username = state.username;
                     }
                     return Promise.resolve(reply);
@@ -263,7 +345,6 @@ class EventBot {
             })
             .catch((err) => {
                 console.log(`Error: ${JSON.stringify(err)}`);
-                this.clearUserState(state);
                 const reply = {
                     text: 'Sorry, something went wrong! Say anything to me to start over...',
                     username: state.username
@@ -291,18 +372,8 @@ class EventBot {
         return reply.replace(/__Name__/g, name);
     }
 
-    handleGenericMessage(state, response, message) {
-        this.logDialog(state, "start", message, true);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleSkipNameMessage(state, response, message) {
-        this.logDialog(state, "skip_name", message, true);
-        state.username = this.defaultUserName;
+    handleGenericActionMessage(state, response, message, action) {
+        this.logDialog(state, action, message, true);
         let reply = '';
         for (let i = 0; i < response.output['text'].length; i++) {
             reply += response.output['text'][i] + '\n';
@@ -312,21 +383,15 @@ class EventBot {
 
     handleGetNameMessage(state, response, message) {
         this.logDialog(state, "get_name", message, false);
-        state.username = message;
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleSearchRetryMessage(state, response, message) {
-        this.logDialog(state, "search_retry", message, true);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
+        return this.userStore.setNameForUser(state.userId, message)
+            .then(() => {
+                state.username = message;
+                let reply = '';
+                for (let i = 0; i < response.output['text'].length; i++) {
+                    reply += response.output['text'][i] + '\n';
+                }
+                return Promise.resolve(reply);
+            });
     }
 
     handleRecentSearches(state, response, message) {
@@ -385,22 +450,52 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleRecentSearchInvalidSelection(state, response, message) {
-        this.logDialog(state, "recent_search_invalid_selection", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleGetSpeakerMessage(state, response, message) {
-        this.logDialog(state, "get_speaker", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
+    handleSearchTopicMessage(state, response, message) {
+        this.logDialog(state, "search_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findEventsByTopic(topic, 5)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here is a list of events happening today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    let first = true;
+                    for (const event of events) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
     }
 
     handleSearchSpeakerMessage(state, response, message) {
@@ -428,63 +523,24 @@ class EventBot {
                 else {
                     let reply = {
                         text: '<b>Here are events featuring this speaker today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     reply.text += '<ul>';
+                    let first = true;
                     for (const event of filteredEvents) {
                         reply.text += '<li>' + event.name + '</li>';
-                        reply.points.push(event);
-                    }
-                    reply.text += '</ul>';
-                    state.lastReply = reply;
-                    return Promise.resolve(reply);
-                }
-            });
-    }
-
-    handleGetTopicMessage(state, response, message) {
-        this.logDialog(state, "get_topic", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
-    }
-
-    handleSearchTopicMessage(state, response, message) {
-        this.logDialog(state, "search_topic", message, false);
-        state.conversationContext['search_no_results'] = false;
-        let topic = message;
-        return this.eventStore.findEventsByTopic(topic, 5)
-            .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
+                        if (first) {
+                            first = false;
                         }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: '<b>Here is a list of events happening today:</b><br/>',
-                        points: []
-                    };
-                    reply.text += '<ul>';
-                    for (const event of events) {
-                        reply.text += '<li>' + event.name + '</li>';
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
-                    state.lastReply = reply;
+                    state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
             });
@@ -514,46 +570,133 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here is a list of event suggestions for today:\n',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     reply.text += '<ul>';
+                    let first = true;
                     for (const event of events) {
                         reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
-                    state.lastReply = reply;
+                    state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
             });
     }
 
-    handleNoTextMessage(state, response, message) {
-        this.logDialog(state, "no_text", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
+    handleSearchMusicTopicMessage(state, response, message) {
+        this.logDialog(state, "search_music_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findMusicEventsByTopic(topic, 5)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here are some matching music events today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
     }
 
-    handleGetPhoneNumberMessage(state, response, message) {
-        this.logDialog(state, "get_phone_number", message, false);
-        let reply = '';
-        for (let i = 0; i < response.output['text'].length; i++) {
-            reply += response.output['text'][i] + '\n';
-        }
-        return Promise.resolve(reply);
+    handleSearchMusicArtistMessage(state, response, message) {
+        this.logDialog(state, "search_music_artist", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let artist = message;
+        return this.eventStore.findMusicEventsByArtist(artist, 5)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here are events featuring this artist today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
     }
 
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
         let body = this.baseUrl + '/eventList';
-        if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
+        if (state.lastSearchResults && state.lastSearchResults.length > 0) {
             body += '?ids=';
             let first = true;
-            for(const point of state.lastReply.points) {
+            for(const point of state.lastSearchResults) {
                 if (first) {
                     first = false;
                 }
@@ -566,8 +709,6 @@ class EventBot {
         console.log(`Sending ${body} to ${phoneNumber}...`);
         return this.sendTextMessage(phoneNumber, body)
             .then(() => {
-                // clear user state - end of conversation
-                this.clearUserState(state);
                 let reply = '';
                 for (let i = 0; i < response.output['text'].length; i++) {
                     reply += response.output['text'][i] + '\n';
@@ -643,12 +784,9 @@ class EventBot {
     }
 
     clearUserState(state) {
-        // do not clear out dialog state or userId
+        // do not clear out dialog state, userId, or username
         // they are used for logging which is done asynchronously
-        state.username = null;
-        state.lastReply = null;
         state.conversationContext = {};
-        state.conversationStarted = false;
     }
 
     clearUserStateForUser(userId) {

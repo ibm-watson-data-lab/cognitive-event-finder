@@ -1,7 +1,7 @@
 var botUsername = '<img class="watson_avatar" src="img/Watson_Avatar_Rev_RGB.png">'; //'bot';
 var popup = new mapboxgl.Popup({
     closeButton: false,
-    closeOnClick: true
+    closeOnClick: false
 });
 var map;
 
@@ -14,20 +14,11 @@ var app = new Vue({
         webSocketPingTimer: null,
         message: '',
         messages: [],
-        username: null
+        startMessageSent: false
     },
     methods: {
-        isMatch: function(msg, strLowers) {
-            var msgLower = msg.toLowerCase();
-            for (var i = 0; i < strLowers.length; i++) {
-                if (strLowers[i].indexOf(msgLower) >= 0) {
-                    return true;
-                }
-            }
-            return false;
-        },
         submitMessage: function() {
-            app.messages.unshift({
+            app.messages.push({
                 user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
@@ -35,21 +26,26 @@ var app = new Vue({
                     type: 'msg',
                     text: app.message
                 },
-                isUser: true, 
+                isUser: true,
                 userStyle: {
-                    'float': 'right', 
-                    'padding-right': '0px', 
+                    'float': 'right',
+                    'padding-right': '0px',
                     'width': '28px'
                 },
                 msgStyle: {
+                    'overflow': 'auto'
                 }
             });
-            app.webSocket.send(JSON.stringify({
-                clientId: clientId,
-                type: 'msg',
-                text: app.message
-            }));
+            app.sendMessage(app.message, false);
             app.message = '';
+        },
+        sendMessage: function(text, startOver) {
+            app.webSocket.send(JSON.stringify({
+                token: token,
+                type: 'msg',
+                text: text,
+                startOver: startOver
+            }));
         },
         init() {
             // init mapbox
@@ -84,7 +80,7 @@ var app = new Vue({
                 app.connect();
             } else {
                 app.webSocket.send(JSON.stringify({
-                    clientId: clientId,
+                    token: token,
                     type: 'ping'
                 }));
             }
@@ -97,32 +93,35 @@ var app = new Vue({
                 app.webSocket.onopen = function() {
                     console.log('Web socket connected.');
                     app.webSocketConnected = (app.webSocket.readyState == 1);
+                    if (app.webSocketConnected && !app.startMessageSent) {
+                        app.startMessageSent = true;
+                        app.sendMessage('Hi', true);
+                    }
                 };
                 app.webSocket.onmessage = function(evt) {
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
-                        app.username = data.username;
-                        app.messages.unshift({
+                        app.messages.push({
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
                             data: data,
-                            isUser: false, 
+                            isUser: false,
                             userStyle: {
 
                             },
-                            msgStyle: {
-                            }
+                            msgStyle: {}
+                        });
+                        Vue.nextTick(() => { // scroll down
+                            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                         });
                         if (data.type == 'map') {
                             app.updateMap(data);
                         }
-                    }
-                    else if (data.type == 'input') {
-                        app.username = data.username;
-                        app.messages.unshift({
+                    } else if (data.type == 'input') {
+                        app.messages.push({
                             user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),
                             key: new Date().getTime() + '',
@@ -130,19 +129,17 @@ var app = new Vue({
                                 type: 'msg',
                                 text: data.text
                             },
-                            isUser: true, 
+                            isUser: true,
                             userStyle: {
-                                'float': 'right', 
-                                'padding-right': '0px', 
+                                'float': 'right',
+                                'padding-right': '0px',
                                 'width': '28px'
                             },
-                            msgStyle: {
-                            }
+                            msgStyle: {}
                         });
                         app.message = '';
-                    }
-                    else if (data.type == 'ping') {
-                        console.log('Received ping.');
+                    } else if (data.type == 'ping') {
+                        // console.log('Received ping.');
                     }
                 };
                 app.webSocket.onclose = function() {
@@ -199,13 +196,16 @@ var app = new Vue({
                 return
             }
 
-            var bbox = turf.bbox(geoj)
-            console.log(bbox)
+            var bbox = turf.bbox(geoj);
+            // console.log("geoj bbox: " + bbox);
 
             if (!map.getSource('locations')) {
                 map.addSource('locations', {
                     "type": "geojson",
-                    "data": geoj
+                    "data": geoj,
+                    "cluster": true,
+                    "clusterMaxZoom": 20,
+                    "clusterRadius": 5
                 });
             } else {
                 map.getSource('locations').setData(geoj)
@@ -218,8 +218,29 @@ var app = new Vue({
                     "type": "symbol",
                     "source": 'locations',
                     "layout": {
-                        "icon-image": "marker-101",
-                        "icon-size": 0.2
+                        "icon-image": "doc-icon",
+                        "icon-size": {
+                            "stops": [ [7, 0.3], [15, 0.6] ]
+                        },
+                        "icon-allow-overlap": true
+                    }
+                }, 'events-label');
+            }
+
+            if (!map.getLayer('events-cluster')) {
+                map.addLayer({
+                    "id": "events-cluster",
+                    "type": "symbol",
+                    "source": "locations",
+                    "layout": {
+                        "text-field": "{point_count}",
+                        "text-font": [
+                            "DIN Offc Pro Medium",
+                            "Arial Unicode MS Bold"
+                        ],
+                        "text-size": 14,
+                        "text-offset": [0,-2],
+                        "text-allow-overlap": true
                     }
                 }, 'events-label');
             }
@@ -236,46 +257,48 @@ var app = new Vue({
                 }
             }
 
-            map.on('mousemove', function(e) {
-                    let buffer = 3
-                    minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
-                    maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
-                    var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
-                        layers: ["eventsLayer"]
-                    });
+            map.on('click', function(e) {
+                let buffer = 3
+                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
+                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
+                var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
+                    layers: ["eventsLayer"]
+                });
 
-                    map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                    if (!fs.length) {
-                        popup.remove();
-                        return;
-                    };
+                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+                if (!fs.length) {
+                    popup.remove();
+                    return;
+                };
 
-                    console.log(fs)
+                // console.log(fs);
 
-                    if (fs.length > 1) {
-                        popuphtml = "";
-                        fs.forEach(function(f) {
-                            titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                            popuphtml += "<div class='popup-title'>" + titl + "</div>";
-                            if (f.properties.description) {
-                                var desc = f.properties.description;
-                                if ( desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
-                                popuphtml += "<p>" + desc + "</p>";
-                            }
-                            
-                        }, this);
-                        popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
-                    } else {
-                        var f = fs[0];
+                if (fs.length > 1) {
+                    popuphtml = "";
+                    fs.forEach(function(f) {
                         titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                        popuphtml += "<div class='popup-title'>" + titl + "</div>";
+                        if (f.properties.description) {
+                            var desc = f.properties.description;
+                            if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
+                            popuphtml += "<p>" + desc + "</p>";
+                        }
+
+                    }, this);
+                    popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+                } else {
+                    var f = fs[0];
+                    if (!f.properties.cluster) {
+                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
                         popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
                         var desc = f.properties.description;
-                        if ( desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
+                        if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
                         if (f.properties.img_url && f.properties.img_url != 'undefined')
                             popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
                         popuphtml += desc + "</div>";
                         popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
                     }
+                }
             });
         }
     }

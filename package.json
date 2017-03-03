@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/ibm-cds-labs/cognitive-event-finder",
   "dependencies": {
+    "bitly": "^4.1.1",
     "cf-deployment-tracker-client": "^0.x",
     "cfenv": "1.0.x",
     "cloudant": "^1.6.2",

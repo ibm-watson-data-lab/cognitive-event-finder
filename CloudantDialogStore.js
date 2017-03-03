@@ -20,11 +20,11 @@ class CloudantDialogStore {
     init() {
         console.log('Getting dialog database...');
         this.db = this.cloudant.db.use(this.dbName);
-        // // crate the date/userId index
+        // crate the date/userId index
         // var index = {
         //     type: 'json',
         //     index: {
-        //         fields: ['date',"userId"]
+        //         fields: ['date','userId']
         //     }
         // };
         // return this.db.index(index);
@@ -56,6 +56,27 @@ class CloudantDialogStore {
             .then((conversationDoc) => {
                 conversationDoc.dialogs.push(dialog);
                 return this.db.insert(conversationDoc);
+            });
+    }
+
+    /**
+     * Gets the user name for the userId.
+     * @param userId - The ID of the user
+     * @returns {Promise.<TResult>}
+     */
+    getUserNameForUserId(userId) {
+        const selector = {
+            'date': {'$gt': 0},
+            'userId': userId
+        };
+        return this.db.find({selector: selector})
+            .then((result) => {
+                if (result.docs && result.docs.length > 0) {
+                    return Promise.resolve(userId);
+                }
+                else {
+                    return Promise.resolve();
+                }
             });
     }
 
