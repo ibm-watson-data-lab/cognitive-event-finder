@@ -91,7 +91,7 @@ var app = new Vue({
                 app.webSocket.onopen = function() {
                     console.log('Web socket connected.');
                     app.webSocketConnected = (app.webSocket.readyState == 1);
-                    if (app.webSocketConnected && ! app.startMessageSent) {
+                    if (app.webSocketConnected && !app.startMessageSent) {
                         app.startMessageSent = true;
                         app.sendMessage('Hi', true);
                     }
@@ -106,18 +106,16 @@ var app = new Vue({
                             ts: new Date(),
                             key: new Date().getTime() + '',
                             data: data,
-                            isUser: false, 
+                            isUser: false,
                             userStyle: {
 
                             },
-                            msgStyle: {
-                            }
+                            msgStyle: {}
                         });
                         if (data.type == 'map') {
                             app.updateMap(data);
                         }
-                    }
-                    else if (data.type == 'input') {
+                    } else if (data.type == 'input') {
                         app.messages.push({
                             user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),
@@ -126,18 +124,16 @@ var app = new Vue({
                                 type: 'msg',
                                 text: data.text
                             },
-                            isUser: true, 
+                            isUser: true,
                             userStyle: {
-                                'float': 'right', 
-                                'padding-right': '0px', 
+                                'float': 'right',
+                                'padding-right': '0px',
                                 'width': '28px'
                             },
-                            msgStyle: {
-                            }
+                            msgStyle: {}
                         });
                         app.message = '';
-                    }
-                    else if (data.type == 'ping') {
+                    } else if (data.type == 'ping') {
                         console.log('Received ping.');
                     }
                 };
@@ -201,7 +197,10 @@ var app = new Vue({
             if (!map.getSource('locations')) {
                 map.addSource('locations', {
                     "type": "geojson",
-                    "data": geoj
+                    "data": geoj,
+                    "cluster": true,
+                    "clusterMaxZoom": 20,
+                    "clusterRadius": 5
                 });
             } else {
                 map.getSource('locations').setData(geoj)
@@ -214,10 +213,26 @@ var app = new Vue({
                     "type": "symbol",
                     "source": 'locations',
                     "layout": {
-                        "icon-image": "marker-101",
-                        "icon-size": 0.2
+                        "icon-image": "doc-icon",
+                        "icon-size": 0.3
                     }
                 }, 'events-label');
+            }
+
+            if (!map.getLayer('eventsLabel')) {
+                map.addLayer({
+                    "id": "events-cluster",
+                    "type": "symbol",
+                    "source": "locations",
+                    "layout": {
+                        "text-field": "{point_count}",
+                        "text-font": [
+                            "DIN Offc Pro Medium",
+                            "Arial Unicode MS Bold"
+                        ],
+                        "text-size": 12
+                    }
+                });
             }
 
             if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
@@ -233,45 +248,45 @@ var app = new Vue({
             }
 
             map.on('mousemove', function(e) {
-                    let buffer = 3
-                    minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
-                    maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
-                    var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
-                        layers: ["eventsLayer"]
-                    });
+                let buffer = 3
+                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
+                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
+                var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
+                    layers: ["eventsLayer"]
+                });
 
-                    map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                    if (!fs.length) {
-                        popup.remove();
-                        return;
-                    };
+                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+                if (!fs.length) {
+                    popup.remove();
+                    return;
+                };
 
-                    console.log(fs)
+                console.log(fs)
 
-                    if (fs.length > 1) {
-                        popuphtml = "";
-                        fs.forEach(function(f) {
-                            titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                            popuphtml += "<div class='popup-title'>" + titl + "</div>";
-                            if (f.properties.description) {
-                                var desc = f.properties.description;
-                                if ( desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
-                                popuphtml += "<p>" + desc + "</p>";
-                            }
-                            
-                        }, this);
-                        popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
-                    } else {
-                        var f = fs[0];
+                if (fs.length > 1) {
+                    popuphtml = "";
+                    fs.forEach(function(f) {
                         titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                        popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
-                        var desc = f.properties.description;
-                        if ( desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
-                        if (f.properties.img_url && f.properties.img_url != 'undefined')
-                            popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
-                        popuphtml += desc + "</div>";
-                        popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
-                    }
+                        popuphtml += "<div class='popup-title'>" + titl + "</div>";
+                        if (f.properties.description) {
+                            var desc = f.properties.description;
+                            if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
+                            popuphtml += "<p>" + desc + "</p>";
+                        }
+
+                    }, this);
+                    popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+                } else {
+                    var f = fs[0];
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                    popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                    var desc = f.properties.description;
+                    if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
+                    if (f.properties.img_url && f.properties.img_url != 'undefined')
+                        popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
+                    popuphtml += desc + "</div>";
+                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                }
             });
         }
     }

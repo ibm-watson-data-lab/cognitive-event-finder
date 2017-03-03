@@ -123,6 +123,12 @@ html {
     padding: 12px;
     background-color: rgba(255, 255, 255, 0.85);
     width: 320px;
+    height: 320px;
+    right: 20px;
+    bottom: 20px;
+    position: absolute;
+    z-index: 10;
+    border-radius: 10px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
