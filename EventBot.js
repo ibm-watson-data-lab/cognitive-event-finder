@@ -105,7 +105,7 @@ class EventBot {
                             return this.userStore.addUser(phoneNumber, token);
                         }
                         else {
-                            return Promise.resolve(user);
+                            return Promise.resolve(userDoc);
                         }
                     })
                     .then((userDoc) => {
