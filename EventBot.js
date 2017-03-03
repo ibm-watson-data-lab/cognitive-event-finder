@@ -90,6 +90,7 @@ class EventBot {
         if (msg.type == 'msg') {
             // look for a phone number to push the conversation to a phone via text messaging/mobile app
             if (msg.text.toLowerCase().startsWith('p:')) {
+                let remoteControlUserId = userId;
                 let phoneNumber = this.formatPhoneNumber(msg.text.substring(2));
                 let data = {
                     user: phoneNumber,
@@ -111,7 +112,7 @@ class EventBot {
                     .then((userDoc) => {
                         user = userDoc;
                         this.setUserIdForToken(user.token, user._id);
-                        this.setRemoteControlForUserId(data.user, userId);
+                        this.setRemoteControlForUserId(data.user, remoteControlUserId);
                         this.clearUserStateForUser(data.user);
                         return this.processMessage(data);
                     })
@@ -301,14 +302,20 @@ class EventBot {
                 else if (action == 'recent_search_selected') {
                     return this.handleRecentSearchSelected(state, response, message);
                 }
-                else if (action == 'search_suggestion') {
-                    return this.handleSearchSuggestionMessage(state, response, message);
-                }
                 else if (action == 'search_topic') {
                     return this.handleSearchTopicMessage(state, response, message);
                 }
                 else if (action == 'search_speaker') {
                     return this.handleSearchSpeakerMessage(state, response, message);
+                }
+                else if (action == 'search_suggestion') {
+                    return this.handleSearchSuggestionMessage(state, response, message);
+                }
+                else if (action == 'search_music_topic') {
+                    return this.handleSearchMusicTopicMessage(state, response, message);
+                }
+                else if (action == 'search_music_artist') {
+                    return this.handleSearchMusicArtistMessage(state, response, message);
                 }
                 else if (action == 'text') {
                     return this.handleTextMessage(state, response, message);
@@ -338,7 +345,6 @@ class EventBot {
             })
             .catch((err) => {
                 console.log(`Error: ${JSON.stringify(err)}`);
-                this.clearUserState(state);
                 const reply = {
                     text: 'Sorry, something went wrong! Say anything to me to start over...',
                     username: state.username
@@ -444,54 +450,6 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleSearchSpeakerMessage(state, response, message) {
-        this.logDialog(state, "search_speaker", message, false);
-        state.conversationContext['search_no_results'] = false;
-        let speaker = message;
-        return this.eventStore.findEventsBySpeaker(speaker, 5)
-            .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: '<b>Here are events featuring this speaker today:</b><br/>',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    reply.text += '<ul>';
-                    let first = true
-                    for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.url += '%2C';
-                        }
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    reply.text += '</ul>';
-                    state.lastReply = reply;
-                    return Promise.resolve(reply);
-                }
-            });
-    }
-
     handleSearchTopicMessage(state, response, message) {
         this.logDialog(state, "search_topic", message, false);
         state.conversationContext['search_no_results'] = false;
@@ -534,7 +492,55 @@ class EventBot {
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
-                    state.lastReply = reply;
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchSpeakerMessage(state, response, message) {
+        this.logDialog(state, "search_speaker", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let speaker = message;
+        return this.eventStore.findEventsBySpeaker(speaker, 5)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here are events featuring this speaker today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
             });
@@ -581,7 +587,103 @@ class EventBot {
                         reply.points.push(event);
                     }
                     reply.text += '</ul>';
-                    state.lastReply = reply;
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchMusicTopicMessage(state, response, message) {
+        this.logDialog(state, "search_music_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findMusicEventsByTopic(topic, 5)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here are some matching music events today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchMusicArtistMessage(state, response, message) {
+        this.logDialog(state, "search_music_artist", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let artist = message;
+        return this.eventStore.findMusicEventsByArtist(artist, 5)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: '<b>Here are events featuring this artist today:</b><br/>',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    reply.text += '<ul>';
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        reply.text += '<li>' + event.name + '</li>';
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.url += '%2C';
+                        }
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
             });
@@ -591,10 +693,10 @@ class EventBot {
         this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
         let body = this.baseUrl + '/eventList';
-        if (state.lastReply && state.lastReply.points && state.lastReply.points.length > 0) {
+        if (state.lastSearchResults && state.lastSearchResults.length > 0) {
             body += '?ids=';
             let first = true;
-            for(const point of state.lastReply.points) {
+            for(const point of state.lastSearchResults) {
                 if (first) {
                     first = false;
                 }
@@ -684,7 +786,6 @@ class EventBot {
     clearUserState(state) {
         // do not clear out dialog state, userId, or username
         // they are used for logging which is done asynchronously
-        state.lastReply = null;
         state.conversationContext = {};
     }
 

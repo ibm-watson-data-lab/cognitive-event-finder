@@ -35,6 +35,12 @@ class CloudantEventStore {
                             },
                             by_speaker: {
                                 index: 'function (doc) { \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n}'
+                            },
+                            by_music_topic: {
+                                index: 'function (doc) { \nif (doc.music) { \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 5}); \n} \n} \n}'
+                            },
+                            by_music_artist: {
+                                index: 'function (doc) { \nif (doc.music) { \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {}); \n} \n} \n} \n}'
                             }
                         }
                     };
@@ -54,25 +60,7 @@ class CloudantEventStore {
      */
     findEventsByTopic(searchStr, count) {
         var query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr}`;
-        return this.db.search('search', 'by_topic', {q:query, include_docs:true})
-            .then((result) => {
-                if (result.rows) {
-                    var events = [];
-                    var i = -1;
-                    for (var row of result.rows) {
-                        if (count <= 0 || ++i < count) {
-                            events.push(row.doc);
-                        }
-                        else {
-                            break;
-                        }
-                    }
-                    return Promise.resolve(events);
-                }
-                else {
-                    return Promise.resolve();
-                }
-            });
+        return this.findEvents('search', 'by_topic', query, count);
     }
 
     /**
@@ -82,26 +70,7 @@ class CloudantEventStore {
      * @returns {Promise.<TResult>}
      */
     findEventsBySpeaker(searchStr, count) {
-        var query = `speaker:${searchStr}`;
-        return this.db.search('search', 'by_speaker', {q:query, include_docs:true})
-            .then((result) => {
-                if (result.rows) {
-                    var events = [];
-                    var i = -1;
-                    for (var row of result.rows) {
-                        if (count <= 0 || ++i < count) {
-                            events.push(row.doc);
-                        }
-                        else {
-                            break;
-                        }
-                    }
-                    return Promise.resolve(events);
-                }
-                else {
-                    return Promise.resolve();
-                }
-            });
+        return this.findEvents('search', 'by_speaker', `speaker:${searchStr}`, count);
     }
 
     /**
@@ -110,8 +79,40 @@ class CloudantEventStore {
      * @returns {Promise.<TResult>}
      */
     findSuggestedEvents(count) {
-        var query = '*:*';
-        return this.db.search('search', 'by_topic', {q:query, include_docs:true})
+        return this.findEvents('search', 'by_speaker', '*:*', count);
+    }
+
+    /**
+     * Searches for music events based on topic.
+     * @param searchStr - The search string
+     * @param count - Max number of events to return
+     * @returns {Promise.<TResult>}
+     */
+    findMusicEventsByTopic(searchStr, count) {
+        var query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr} OR artist:${searchStr}`;
+        return this.findEvents('search', 'by_music_topic', query, count);
+    }
+
+    /**
+     * Searches for events based on topic.
+     * @param searchStr - The search string
+     * @param count - Max number of events to return
+     * @returns {Promise.<TResult>}
+     */
+    findMusicEventsByArtist(searchStr, count) {
+        return this.findEvents('search', 'by_music_artist', `artist:${searchStr}`, count);
+    }
+
+    /**
+     * Queries the specified design doc and search index
+     * @param designDoc
+     * @param searchIndex
+     * @param query
+     * @param count
+     * @returns {Promise.<TResult>}
+     */
+    findEvents(designDoc, searchIndex, query, count) {
+        return this.db.search(designDoc, searchIndex, {q:query, include_docs:true})
             .then((result) => {
                 if (result.rows) {
                     var events = [];
