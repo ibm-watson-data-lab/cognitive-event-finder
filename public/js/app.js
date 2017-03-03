@@ -219,7 +219,7 @@ var app = new Vue({
                 }, 'events-label');
             }
 
-            if (!map.getLayer('eventsLabel')) {
+            if (!map.getLayer('events-cluster')) {
                 map.addLayer({
                     "id": "events-cluster",
                     "type": "symbol",
