@@ -13,7 +13,7 @@
 .container {
     display: flex;
     height: calc(100% - 75px);
-    top: 74px;
+    /*top: 74px;*/
 }
 
 .mapboxgl-popup {
@@ -33,8 +33,8 @@
 }
 
 .app-banner {
-    background-image: url(../img/walnut_vert.jpg);
-    background-size: 15%;
+    background-image: url('../img/woodslats.png');
+    background-size: 10%;
     align-self: center;
     background-position: right;
     background-color: #000;
@@ -42,13 +42,14 @@
     color: #FFF;
     padding-left: 24px;
     height: 75px;
-    position: absolute;
+    /*position: absolute;*/
 }
 
 #app-banner-title {
-    display: inline;
+    /*display: inline;*/
     top: -58px;
     left: 64px;
+    text-shadow: 2px 2px 4px #404040;
 }
 #app-banner-title-head {
     font-size: 30px;
@@ -60,8 +61,8 @@
 }
 
 #watson_avatar_banner {
-    max-height: 48px;
-    padding: 0 8px 0 0;
+    height: 48px;
+    /*padding: 0 8px 0 0;*/
 }
 
 #watson_glyph {
@@ -102,7 +103,7 @@ body,
 html {
     font-family: 'Helvetica Neue', 'Helvetica', sans-serif !important;
     color: #404040;
-    background-color: rgba(0, 0, 0, 0.75) !important;
+    background-color: #404040;
     margin: 0;
     padding: 0;
 }
@@ -264,10 +265,12 @@ html {
 .userBubble:before {
     left: calc(100% - 4px);
     border-width: 0 15px 15px 0;
+    border-color: #bbbbbb transparent;
 }
 .userBubble {
     margin-right: 12px;
     float: right;
+    background: #bbbbbb;
 }
 
 .cursor {
@@ -284,9 +287,87 @@ html {
 #chat-messages {
     height: calc(100% - 36px);
     overflow-y: scroll;
+    padding-bottom: 8px;
 }
 
-#convo-section {
+.convo-section {
     -webkit-box-shadow: 2px 2px 2px 2px rgba(128,128,128,0.5);
     box-shadow: 2px 2px 2px 2px rgba(128,128,128,0.5);
+}
+
+/* mobile */
+
+.session {
+    margin: 15px;
+    margin-bottom: 10px;
+}
+
+.mobile-hide {
+    display: block !important;
+}
+
+.mobile-show {
+    display: block !important;
+}
+
+.no-mobile-hide {
+    display: none;
+}
+
+@media only screen and (max-width: 640px) {
+    .mobile-hide {
+        display: none !important;
+    }
+    .mobile-show {
+        display: block !important;
+    }
+    .sidebar {
+        width: 100%;
+        max-height: calc(100% - 40px);
+        margin: 0;
+        /*left: 0;
+        top: 0;
+        height: 16vh;*/
+        position: relative;
+        border-radius: 0px;
+        right: initial;
+        bottom: initial;
+    }
+    #map {
+        left: 0;
+        bottom: 0;
+        /*top: 16vh;*/
+        width: 100%;
+        /*height: calc(100% - 16vh);*/
+        display: none;
+    }
+    .mapboxgl-popup {
+        max-width: 256px;
+    }
+    .mobile-btn {
+        border: 1px solid #999;
+        color: white;
+        margin: 4px auto;
+        border-radius: 5px;
+        height: 25px;
+        width: 50%;
+        text-align: center;
+    }
+    .session {
+        display: none;
+    }
+    #title,
+    .session-alt {
+        display: block;
+    }
+    .session-alt {
+        width: 100%;
+    }
+    #types .btn {
+        flex-basis: 33%;
+    }
+    p {
+        display: inline-block;
+        font-size: 1em;
+    }
 }

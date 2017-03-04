@@ -59,7 +59,7 @@ var app = new Vue({
                 container: "map",
                 style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                 center: [-97.74306, 30.26715],
-                zoom: 12,
+                zoom: 14,
                 pitch: 30
             });
 
@@ -109,12 +109,10 @@ var app = new Vue({
                             key: new Date().getTime() + '',
                             data: data,
                             isUser: false,
-                            userStyle: {
-
-                            },
+                            userStyle: {},
                             msgStyle: {}
                         });
-                        Vue.nextTick(() => { // scroll down
+                        Vue.nextTick(() => { // scroll messages to bottom of window
                             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                         });
                         if (data.type == 'map') {
@@ -247,6 +245,7 @@ var app = new Vue({
 
             if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
                 try {
+                    mapToggle();
                     let buffer = 0.003
                     map.fitBounds([
                         [bbox[0] - buffer, bbox[1] - buffer],
@@ -308,6 +307,11 @@ var app = new Vue({
     // Initialize vue app
     app.init();
 })();
+
+function mapToggle() {
+    $('#map, #app').toggleClass('mobile-hide mobile-show');
+    $('.mapchat-btn').toggleClass('mobile-hide mobile-show');
+}
 
 Vue.component('chat-message', {
     props: ['msg'],
