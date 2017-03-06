@@ -204,7 +204,7 @@ var app = new Vue({
                 map.addSource('locations', {
                     "type": "geojson",
                     "data": geoj,
-                    "cluster": true,
+                    "cluster": false,
                     "clusterMaxZoom": 20,
                     "clusterRadius": 5
                 });
@@ -224,24 +224,6 @@ var app = new Vue({
                             "stops": [ [7, 0.3], [15, 0.6] ]
                         },
                         "icon-allow-overlap": true
-                    }
-                }, 'events-label');
-            }
-
-            if (!map.getLayer('events-cluster')) {
-                map.addLayer({
-                    "id": "events-cluster",
-                    "type": "symbol",
-                    "source": "locations",
-                    "layout": {
-                        "text-field": "{point_count}",
-                        "text-font": [
-                            "DIN Offc Pro Medium",
-                            "Arial Unicode MS Bold"
-                        ],
-                        "text-size": 14,
-                        "text-offset": [0,-2],
-                        "text-allow-overlap": true
                     }
                 }, 'events-label');
             }
@@ -312,8 +294,7 @@ var app = new Vue({
 })();
 
 function mapToggle() {
-    $('#map, #app').toggleClass('mobile-hide mobile-show');
-    $('.mapchat-btn').toggleClass('mobile-hide mobile-show');
+    $('#map, #app', '.mapchat-btn').toggleClass('mobile-hide mobile-show');
 }
 
 Vue.component('chat-message', {

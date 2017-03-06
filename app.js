@@ -12,6 +12,7 @@ const TwilioRestClient = require('twilio').RestClient;
 const uuidV4 = require('uuid/v4');
 
 const appEnv = cfenv.getAppEnv();
+appEnv.bind = '192.168.1.70';
 const app = express();
 const http = require('http').Server(app);
 
