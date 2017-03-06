@@ -1,7 +1,6 @@
-.map {
+#map {
     flex-grow: 1;
     width: auto;
-    background: #eee;
 }
 
 .watson_avatar, .anon_avatar {
