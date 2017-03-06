@@ -336,11 +336,6 @@ html {
     }
 
     #map {
-        left: 0;
-        bottom: 0;
-        /*top: 16vh;*/
-        width: 100%;
-        /*height: calc(100% - 16vh);*/
         display: none;
         order: 1;
     }
