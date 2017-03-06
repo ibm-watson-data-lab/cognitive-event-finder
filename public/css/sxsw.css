@@ -152,22 +152,6 @@ html {
 }
 
 
-/* Mobile rules */
-
-@media screen and (max-width: 640px) {
-    .container {
-        flex-direction: column;
-    }
-    .sidebar {
-        flex-shrink: 1;
-        order: 2;
-        width: 100%;
-    }
-    .map {
-        order: 1;
-    }
-}
-
 .event {
     margin-top: 5px;
     color: #fff;
@@ -314,6 +298,8 @@ html {
     display: none;
 }
 
+/* Mobile rules */
+
 @media only screen and (max-width: 640px) {
     .mobile-hide {
         display: none !important;
@@ -321,18 +307,35 @@ html {
     .mobile-show {
         display: block !important;
     }
+
+    .container {
+        flex-direction: column;
+    }
+    .app-banner {
+        padding: 12 8 4 8 !important;
+        background-size: 30%;
+    }
+    #app-banner-title {
+        top: -48px;
+    }
+    #app-banner-title-head {
+        font-size: 22px;
+    }
+    #app-banner-title-subhead {
+        font-size: 12px;
+    }
     .sidebar {
         width: 100%;
         max-height: calc(100% - 40px);
         margin: 0;
-        /*left: 0;
-        top: 0;
-        height: 16vh;*/
+        flex-shrink: 1;
+        order: 2;
         position: relative;
         border-radius: 0px;
         right: initial;
         bottom: initial;
     }
+
     #map {
         left: 0;
         bottom: 0;
@@ -340,6 +343,7 @@ html {
         width: 100%;
         /*height: calc(100% - 16vh);*/
         display: none;
+        order: 1;
     }
     .mapboxgl-popup {
         max-width: 256px;
