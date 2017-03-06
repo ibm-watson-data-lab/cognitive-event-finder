@@ -1,6 +1,8 @@
 #map {
-    flex-grow: 1;
-    width: auto;
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    width: 100%;
 }
 
 .watson_avatar, .anon_avatar {
@@ -10,9 +12,10 @@
 }
 
 .container {
-    display: flex;
-    height: calc(100% - 75px);
-    /*top: 74px;*/
+    width: 100%;
+    position: absolute;
+    top: 75px;
+    bottom: 0px;
 }
 
 .mapboxgl-popup {
@@ -41,11 +44,9 @@
     color: #FFF;
     padding-left: 24px;
     height: 75px;
-    /*position: absolute;*/
 }
 
 #app-banner-title {
-    /*display: inline;*/
     top: -58px;
     left: 64px;
     text-shadow: 2px 2px 4px #404040;
@@ -61,7 +62,6 @@
 
 #watson_avatar_banner {
     height: 48px;
-    /*padding: 0 8px 0 0;*/
 }
 
 #watson_glyph {
@@ -108,17 +108,11 @@ html {
 }
 
 
-.right-fit-flex {
-    flex-direction: row-reverse;
-}
-
 .center {
     margin: auto;
 }
 
 .sidebar {
-    flex-grow: 1;
-    flex-shrink: 1;
     font-size: 10pt;
     padding: 12px;
     background-color: rgba(255, 255, 255, 0.85);
@@ -130,26 +124,8 @@ html {
     z-index: 10;
     border-radius: 10px;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
     border: 3px;
 }
-
-.sidebar-inner {
-    display: -webkit-box;
-    display: flex;
-    -webkit-box-orient: vertical;
-    flex-direction: column;
-    flex-grow: 1;
-}
-
-.sidebar-inner .flex-scroll {
-    overflow-y: scroll;
-    min-height: 0;
-    -webkit-box-flex: 1;
-    flex: 1;
-}
-
 
 .event {
     margin-top: 5px;
@@ -218,7 +194,7 @@ html {
 }
 
 .chat-message {
-    margin-top: 8px;
+    margin: 8px;
 }
 
 .bubble {
@@ -268,9 +244,17 @@ html {
 }
 
 #chat-messages {
-    height: calc(100% - 36px);
+    /*height: calc(100% - 36px);*/
+    height: 100%;
+    position: relative;
     overflow-y: scroll;
-    padding-bottom: 8px;
+    padding: 0px 10px 44px 10px;
+}
+
+#chat-form {
+    position: fixed;
+    bottom: 30px;
+    width: 300px;
 }
 
 .convo-section {
@@ -299,7 +283,7 @@ html {
 
 /* Mobile rules */
 
-@media only screen and (max-width: 640px) {
+@media only screen and (max-width: 960px) {
     .mobile-hide {
         display: none !important;
     }
@@ -307,10 +291,19 @@ html {
         display: block !important;
     }
 
+    body {
+        overflow: hidden;
+    }
+
     .container {
-        flex-direction: column;
+        position: fixed;
+        width: 100%;
+        top: 110px;
+        padding: 0px;
     }
     .app-banner {
+        position: fixed;
+        top: 0px;
         padding: 12 8 4 8 !important;
         background-size: 30%;
     }
@@ -325,24 +318,41 @@ html {
     }
     .sidebar {
         width: 100%;
-        max-height: calc(100% - 40px);
+        height: 100%;
         margin: 0;
-        flex-shrink: 1;
         order: 2;
         position: relative;
+        top: 0px;
+        left: 0px;
+        padding: 0px;
         border-radius: 0px;
-        right: initial;
-        bottom: initial;
+    }
+
+    #chat-messages {
+        position: absolute;
+        top: 40px;
+        left: 0px;
+        width: 100%;
+        height: auto;
+        overflow-y: scroll;
+        padding: 10px;
+    }
+
+    #chat-form {
+        position: fixed;
+        top: 110px;
+        width: 100%;
+    }
+
+    #message {
+        padding: 0px;
     }
 
     #map {
-        left: 0;
-        bottom: 0;
-        /*top: 16vh;*/
-        width: 100%;
-        /*height: calc(100% - 16vh);*/
         display: none;
         order: 1;
+        width: 100%;
+        height: 100%;
     }
     .mapboxgl-popup {
         max-width: 256px;
@@ -362,12 +372,9 @@ html {
     #title,
     .session-alt {
         display: block;
-    }
-    .session-alt {
         width: 100%;
-    }
-    #types .btn {
-        flex-basis: 33%;
+        position: fixed;
+        top: 76px;
     }
     p {
         display: inline-block;

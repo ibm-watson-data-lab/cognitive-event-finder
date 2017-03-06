@@ -36,6 +36,9 @@ var app = new Vue({
                     'overflow': 'auto'
                 }
             });
+            Vue.nextTick(() => { // scroll messages to bottom of window
+                document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+            });
             app.sendMessage(app.message, false);
             app.message = '';
         },
