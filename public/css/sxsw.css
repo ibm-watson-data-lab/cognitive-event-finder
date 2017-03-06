@@ -129,7 +129,7 @@ html {
     position: absolute;
     z-index: 10;
     border-radius: 10px;
-    overflow-y: auto;
+    overflow-y: hidden;
     display: flex;
     flex-direction: column;
     border: 3px;
@@ -325,7 +325,7 @@ html {
     }
     .sidebar {
         width: 100%;
-        max-height: calc(100% - 40px);
+        height: 100vh;
         margin: 0;
         flex-shrink: 1;
         order: 2;
