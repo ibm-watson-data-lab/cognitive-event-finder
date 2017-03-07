@@ -83,7 +83,7 @@ var app = new Vue({
                 ]; // Austin city bounds
                 map = new mapboxgl.Map({
                     container: "map",
-                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1?fresh=true",
                     center: [-97.74306, 30.26715],
                     zoom: 14,
                     pitch: 30
@@ -258,7 +258,7 @@ var app = new Vue({
                     "layout": {
                         "icon-image": "doc-icon",
                         "icon-size": {
-                            "stops": [ [7, 0.3], [15, 0.6] ]
+                            "stops": [ [7, 0.4], [15, 0.6] ]
                         },
                         "icon-allow-overlap": true
                     }
