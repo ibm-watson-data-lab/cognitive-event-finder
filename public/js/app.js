@@ -44,7 +44,7 @@ var app = new Vue({
             else {
                 app.messages.push(message);
             }
-            Vue.nextTick(() => { // scroll messages to bottom of window
+            Vue.nextTick(function() { // scroll messages to bottom of window
                 document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
             });
             app.sendMessage(app.message, false);
@@ -62,7 +62,7 @@ var app = new Vue({
         init() {
             app.mobile = window.matchMedia('(max-width: 960px)').matches;
             if (! app.mobile) {
-                app.initMap(() => {
+                app.initMap(function() {
                     setTimeout(app.onTimer, 1);
                 });
             }
@@ -142,11 +142,11 @@ var app = new Vue({
                         else {
                             app.messages.push(message);
                         }
-                        Vue.nextTick(() => { // scroll messages to bottom of window
+                        Vue.nextTick(function() { // scroll messages to bottom of window
                             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                         });
                         if (data.type == 'map') {
-                            mapToggle(() => {
+                            mapToggle(function() {
                                 app.updateMap(data);
                             });
                         }
@@ -330,6 +330,7 @@ var app = new Vue({
 })();
 
 function mapToggle(onMapLoad) {
+    $('#message').blur();
     $('#map, #app, .mapchat-btn').toggleClass('mobile-hide mobile-show');
     app.initMap(onMapLoad);
 }
