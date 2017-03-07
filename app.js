@@ -62,13 +62,6 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/chat', (req, res) => {
-    res.render('chat.ejs', {
-        webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
-        token: req.query.token || uuidV4()
-    });
-});
-
 app.get('/events', (req, res) => {
     let promise;
     let ids = req.query.ids;

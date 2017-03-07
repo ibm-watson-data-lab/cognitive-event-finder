@@ -14,11 +14,13 @@ var app = new Vue({
         webSocketPingTimer: null,
         message: '',
         messages: [],
-        startMessageSent: false
+        startMessageSent: false,
+        mobile: false,
+        mapLoaded: false
     },
     methods: {
         submitMessage: function() {
-            app.messages.push({
+            var message = {
                 user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
@@ -35,7 +37,13 @@ var app = new Vue({
                 msgStyle: {
                     'overflow': 'auto'
                 }
-            });
+            };
+            if (app.mobile) {
+                app.messages.unshift(message);
+            }
+            else {
+                app.messages.push(message);
+            }
             Vue.nextTick(() => { // scroll messages to bottom of window
                 document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
             });
@@ -47,29 +55,41 @@ var app = new Vue({
                 token: token,
                 type: 'msg',
                 text: text,
+                mobile: app.mobile,
                 startOver: startOver
             }));
         },
         init() {
-            // init mapbox
-            mapboxgl.accessToken = mapboxAccessToken;
-            var bounds = [
+            app.mobile = window.matchMedia('(max-width: 960px)').matches;
+            if (! app.mobile) {
+                app.initMap(() => {
+                    setTimeout(app.onTimer, 1);
+                });
+            }
+            else {
+                setTimeout(app.onTimer, 1);
+            }
+        },
+        initMap(onMapLoaded) {
+            if (app.mapLoaded) {
+                return onMapLoaded();
+            }
+            else {
+                app.mapLoaded = true;
+                mapboxgl.accessToken = mapboxAccessToken;
+                var bounds = [
                     [-98, 29],
                     [-97, 31]
-                ] // Austin city bounds
-
-            map = new mapboxgl.Map({
-                container: "map",
-                style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
-                center: [-97.74306, 30.26715],
-                zoom: 14,
-                pitch: 30
-            });
-
-            map.on('load', function() {
-                setTimeout(app.onTimer, 1);
-            })
-
+                ]; // Austin city bounds
+                map = new mapboxgl.Map({
+                    container: "map",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
+                    center: [-97.74306, 30.26715],
+                    zoom: 14,
+                    pitch: 30
+                });
+                map.on('load', onMapLoaded);
+            }
         },
         onTimer() {
             if (!app.webSocketConnected) {
@@ -81,7 +101,8 @@ var app = new Vue({
                     }
                 }
                 app.connect();
-            } else {
+            }
+            else {
                 app.webSocket.send(JSON.stringify({
                     token: token,
                     type: 'ping'
@@ -106,7 +127,7 @@ var app = new Vue({
                     var data = JSON.parse(evt.data);
                     if (data.type == 'msg' || data.type == 'map') {
                         console.log('Message received: ' + evt.data);
-                        app.messages.push({
+                        var message = {
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
@@ -114,15 +135,24 @@ var app = new Vue({
                             isUser: false,
                             userStyle: {},
                             msgStyle: {}
-                        });
+                        };
+                        if (app.mobile) {
+                            app.messages.unshift(message);
+                        }
+                        else {
+                            app.messages.push(message);
+                        }
                         Vue.nextTick(() => { // scroll messages to bottom of window
                             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                         });
                         if (data.type == 'map') {
-                            app.updateMap(data);
+                            mapToggle(() => {
+                                app.updateMap(data);
+                            });
                         }
-                    } else if (data.type == 'input') {
-                        app.messages.push({
+                    }
+                    else if (data.type == 'input') {
+                        var message = {
                             user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),
                             key: new Date().getTime() + '',
@@ -137,9 +167,16 @@ var app = new Vue({
                                 'width': '28px'
                             },
                             msgStyle: {}
-                        });
+                        };
+                        if (app.mobile) {
+                            app.messages.unshift(message);
+                        }
+                        else {
+                            app.messages.push(message);
+                        }
                         app.message = '';
-                    } else if (data.type == 'ping') {
+                    }
+                    else if (data.type == 'ping') {
                         // console.log('Received ping.');
                     }
                 };
@@ -230,7 +267,6 @@ var app = new Vue({
 
             if (geoj.features.length > 0) { //If no results are returned, don't fail on fitBounds()
                 try {
-                    mapToggle();
                     let buffer = 0.003
                     map.fitBounds([
                         [bbox[0] - buffer, bbox[1] - buffer],
@@ -293,8 +329,9 @@ var app = new Vue({
     app.init();
 })();
 
-function mapToggle() {
-    $('#map, #app', '.mapchat-btn').toggleClass('mobile-hide mobile-show');
+function mapToggle(onMapLoad) {
+    $('#map, #app, .mapchat-btn').toggleClass('mobile-hide mobile-show');
+    app.initMap(onMapLoad);
 }
 
 Vue.component('chat-message', {

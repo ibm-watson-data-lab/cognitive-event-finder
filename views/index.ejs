@@ -48,16 +48,13 @@
         </div>
         <div id="chat-form">
             <form class="form" onsubmit="return false;">
-                <input id="message" aria-label="What's cool at SXSW..." class="input_text" type="text" autocomplete="off" name="message" v-model="message" :disabled="! webSocketConnected" placeholder="What's cool at SxSW..." v-on:keyup.enter="submitMessage">
+                <input id="message" aria-label="What's cool at SXSW..." class="input_text" type="text" autocomplete="off" name="message" v-model="message" :disabled="! webSocketConnected" placeholder="What's cool at SXSW..." v-on:keyup.enter="submitMessage">
             </form>
         </div>
 
     </div>
 </div>
-<script
-  src="https://code.jquery.com/jquery-3.1.1.slim.js"
-  integrity="sha256-5i/mQ300M779N2OVDrl16lbohwXNUdzL/R2aVUXyXWA="
-  crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.1.1.slim.js"  integrity="sha256-5i/mQ300M779N2OVDrl16lbohwXNUdzL/R2aVUXyXWA=" crossorigin="anonymous"></script>
 <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.js"></script>
 <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
 <script src="js/vis-4.5.0.min.js"></script>

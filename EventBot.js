@@ -123,7 +123,7 @@ class EventBot {
                         else {
                             this.sendTextMessageToClient(client, reply);
                         }
-                        let url = this.baseUrl + '/chat?token=' + encodeURIComponent(user.token);
+                        let url = this.baseUrl + '?token=' + encodeURIComponent(user.token);
                         return this.bitly.shorten(url)
                             .then((response) => {
                                 let text = reply.text.replace(/\s+$/g, '');
