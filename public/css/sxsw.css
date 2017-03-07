@@ -50,6 +50,7 @@
     top: -58px;
     left: 64px;
     text-shadow: 2px 2px 4px #404040;
+    overflow: hidden;
 }
 #app-banner-title-head {
     font-size: 30px;
