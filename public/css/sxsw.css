@@ -105,6 +105,7 @@ html {
     background-color: #404040;
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 
 
@@ -288,10 +289,6 @@ html {
     }
     .mobile-show {
         display: block !important;
-    }
-
-    body {
-        overflow: hidden;
     }
 
     .container {
