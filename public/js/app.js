@@ -166,7 +166,9 @@ var app = new Vue({
                                 'padding-right': '0px',
                                 'width': '28px'
                             },
-                            msgStyle: {}
+                            msgStyle: {
+                                'overflow': 'auto'
+                            }
                         };
                         if (app.mobile) {
                             app.messages.unshift(message);

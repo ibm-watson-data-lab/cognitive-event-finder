@@ -109,8 +109,10 @@ html {
     overflow: hidden;
 }
 
-li {
+a {
     cursor: pointer;
+    color: white;
+    text-decoration: none;
 }
 
 
