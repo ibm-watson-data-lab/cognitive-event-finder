@@ -257,6 +257,7 @@ a {
 
 #chat-form {
     position: fixed;
+    bottom: 30px;
     width: 300px;
 }
 
@@ -341,6 +342,7 @@ a {
     #chat-form {
         position: fixed;
         top: 110px;
+        bottom: auto;
         width: 100%;
     }
 
