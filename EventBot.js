@@ -223,8 +223,7 @@ class EventBot {
     processMessage(data, contextVars) {
         let message = data.text;
         let userId = data.user;
-        let token = data.token;
-        let state = this.userStateMasp[userId];
+        let state = this.userStateMap[userId];
         if (! contextVars) {
             contextVars = {};
         }
@@ -236,7 +235,6 @@ class EventBot {
                         name = user.name;
                     }
                     state = {
-                        token: token,
                         userId: userId,
                         username: name,
                         conversationContext: {},
@@ -796,7 +794,7 @@ class EventBot {
         return this.userStore.getUserForId(phoneNumber)
             .then((userDoc) => {
                 let body = this.baseUrl + '/eventList';
-                if (userDoc.token) {
+                if (userDoc && userDoc.token) {
                     body += '?token=';
                     body += encodeURIComponent(userDoc.token);
                     body += '&';
