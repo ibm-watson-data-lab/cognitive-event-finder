@@ -69,28 +69,6 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/events', (req, res) => {
-    let promise;
-    let ids = req.query.ids;
-    if (ids) {
-        promise = cloudantEventStore.getEventsForIds(ids.split(","));
-    }
-    else {
-        promise = cloudantEventStore.findSuggestedEvents(5);
-    }
-    promise.then((events) => {
-        let text = 'Here is a list of events:\n';
-        for (var event of events) {
-            text += '\n' + event.name;
-        }
-        res.render('events.ejs', {
-            text: text,
-            events: JSON.stringify(events),
-            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
-        });
-    });
-});
-
 app.get('/eventList', (req, res) => {
     let promise;
     let ids = req.query.ids;
@@ -104,7 +82,8 @@ app.get('/eventList', (req, res) => {
         res.render('eventList.ejs', {
             events: events,
             eventJson: JSON.stringify(events),
-            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
+            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
+            token: req.query.token || uuidV4()
         });
     });
 });

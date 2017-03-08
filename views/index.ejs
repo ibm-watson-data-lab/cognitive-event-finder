@@ -43,7 +43,7 @@
                     <div class="msg-chat bubble" v-bind:class="[msg.isUser ? 'userBubble' : '']">
                         <div v-if="msg.data.points">
                             <ul>
-                                <b>IIIHere is a list of event suggestions for today:</b><br>
+                                <b>Here is a list of events:</b><br>
                                 <li v-for="event in msg.data.points"><a v-on:click.stop="openPopup(event)">{{ event.name }}</a></li>
                             </ul>
                         </div>

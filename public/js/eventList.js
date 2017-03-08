@@ -179,5 +179,5 @@ var app = new Vue({
 })();
 
 function mapToggle() {
-    window.location = "/";
+    window.location = "/?token=" + token;
 }

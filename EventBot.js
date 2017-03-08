@@ -223,6 +223,7 @@ class EventBot {
     processMessage(data, contextVars) {
         let message = data.text;
         let userId = data.user;
+        let token = data.token;
         let state = this.userStateMap[userId];
         if (! contextVars) {
             contextVars = {};
@@ -235,6 +236,7 @@ class EventBot {
                         name = user.name;
                     }
                     state = {
+                        token: token,
                         userId: userId,
                         username: name,
                         conversationContext: {},
@@ -478,7 +480,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here is a list of events happening today:\n',
-                        url: this.baseUrl + '/eventList?ids=',
+                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '?ids=',
                         points: []
                     };
                     let first = true;
@@ -908,10 +910,9 @@ class EventBot {
             ['nbsp', ' '],
             ['quot', '"']
         ];
-
-        for (var i = 0, max = entities.length; i < max; ++i)
+        for (var i=0; i<entities.length; i++) {
             text = text.replace(new RegExp('&' + entities[i][0] + ';', 'g'), entities[i][1]);
-
+        }
         return text;
     }
 }
