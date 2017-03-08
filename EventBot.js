@@ -301,6 +301,12 @@ class EventBot {
                 else if (action == 'search_music_artist') {
                     return this.handleSearchMusicArtistMessage(state, response, message);
                 }
+                else if (action == 'search_film_topic') {
+                    return this.handleSearchFilmTopicMessage(state, response, message);
+                }
+                else if (action == 'search_film_cast') {
+                    return this.handleSearchFilmCastMessage(state, response, message);
+                }
                 else if (action == 'text') {
                     return this.handleTextMessage(state, response, message);
                 }
@@ -402,7 +408,7 @@ class EventBot {
                             reply.text += '\n';
                         }
                         i++;
-                        reply.text += i + '. ' + search.type + ': ' + search.message;
+                        reply.text += i + '. ' + search.typeFriendly + ': ' + search.message;
                         reply.searches.push(search);
                     }
                     state.recentSearches = reply.searches;
@@ -430,6 +436,12 @@ class EventBot {
             }
             else if (state.recentSearches[index].type == 'music_artist') {
                 return this.handleSearchMusicArtistMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'film_topic') {
+                return this.handleSearchFilmTopicMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'film_cast') {
+                return this.handleSearchFilmCastMessage(state, response, state.recentSearches[index].message);
             }
         }
         // if we got here it was an invalid selection
@@ -657,6 +669,102 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here are events featuring this artist today:\n',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.text += '\n';
+                            reply.url += '%2C';
+                        }
+                        reply.text += event.name;
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchFilmTopicMessage(state, response, message) {
+        this.logDialog(state, "search_film_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findFilmEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: 'Here are some matching film events:\n',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.text += '\n';
+                            reply.url += '%2C';
+                        }
+                        reply.text += event.name;
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchFilmCastMessage(state, response, message) {
+        this.logDialog(state, "search_film_cast", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let cast = message;
+        return this.eventStore.findFilmEventsByCast(cast, this.searchTimeHours, this.searchResultCount)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: 'Here are some matching film events:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };

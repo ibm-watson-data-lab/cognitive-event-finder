@@ -34,16 +34,22 @@ class CloudantEventStore {
                         _id: '_design/search',
                         indexes: {
                             by_topic: {
-                                index: 'function (doc) { \nif (! doc.music) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n} \n}'
+                                index: 'function (doc) { \nif (! doc.music && ! doc.film) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n} \n}'
                             },
                             by_speaker: {
-                                index: 'function (doc) { \nif (! doc.music) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n} \n}'
+                                index: 'function (doc) { \nif (! doc.music && ! doc.film) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n} \n}'
                             },
                             by_music_topic: {
                                 index: 'function (doc) { \nif (doc.music) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.genre) { \nindex("genre", doc.genre, {boost: 5}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 5}); \n} \n} \n} \n}'
                             },
                             by_music_artist: {
                                 index: 'function (doc) { \nif (doc.music && doc._id.substring(0,2) == "ms") { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nindex("artist", doc.name, {boost: 10}); \n} \n}'
+                            },
+                            by_film_topic: {
+                                index: 'function (doc) { \nif (doc.film) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.genre) { \nindex("genre", doc.genre, {boost: 5}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.cast) { \nvar actors = doc.cast.split(","); for (var i=0; i<actors.length; i++) { \nindex("cast", actors[i], {boost: 5}); \n} \n} \n} \n}'
+                            },
+                            by_film_cast: {
+                                index: 'function (doc) { \nif (doc.film) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.cast) { \nvar actors = doc.cast.split(","); for (var i=0; i<actors.length; i++) { \nindex("cast", actors[i], {boost: 10}); \n} \n} \n} \n}'
                             }
                         }
                     };
@@ -115,6 +121,27 @@ class CloudantEventStore {
      */
     findMusicEventsByArtist(searchStr, searchTimeHours, count) {
         return this.findEvents('search', 'by_music_artist', `artist:${searchStr}`, searchTimeHours, count);
+    }
+
+    /**
+     * Searches for film events based on topic.
+     * @param searchStr - The search string
+     * @param count - Max number of events to return
+     * @returns {Promise.<TResult>}
+     */
+    findFilmEventsByTopic(searchStr, searchTimeHours, count) {
+        let query = `name:${searchStr} OR description:${searchStr} OR genre:${searchStr} OR cast:${searchStr}`;
+        return this.findEvents('search', 'by_film_topic', query, searchTimeHours, count);
+    }
+
+    /**
+     * Searches for events based on topic.
+     * @param searchStr - The search string
+     * @param count - Max number of events to return
+     * @returns {Promise.<TResult>}
+     */
+    findFilmEventsByCast(searchStr, searchTimeHours, count) {
+        return this.findEvents('search', 'by_film_cast', `cast:${searchStr}`, searchTimeHours, count);
     }
 
     /**

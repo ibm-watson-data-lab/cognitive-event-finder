@@ -50,7 +50,7 @@
                         <div v-if="msg.data.searches">
                             <b>Here is a list of your recent searches:</b><br>
                             <ul>
-                                <li v-for="(search, index) in msg.data.searches"><a v-on:click.stop="runRecentSearch(index+1)">{{ index+1 }}. {{ search.type }} {{ search.message }}</a></li>
+                                <li v-for="(search, index) in msg.data.searches"><a v-on:click.stop="runRecentSearch(index+1)">{{ index+1 }}. {{ search.typeFriendly }}: {{ search.message }}</a></li>
                             </ul>
                         </div>
                         <div v-if="! msg.data.points && ! msg.data.searches">{{ msg.data.text }}</div>
