@@ -325,20 +325,22 @@ var app = new Vue({
             }
         },
         openPopup(event) {
-            map.panTo(event.geometry.coordinates);
-            var features = [];
-            try {
-                var allFeatures = map.getSource('locations')._data.features;
-                for (var i = 0; i < allFeatures.length; i++) {
-                    if (allFeatures[i].properties._id == event._id) {
-                        features.push(allFeatures[i]);
+            mapToggle(function() {
+                map.panTo(event.geometry.coordinates);
+                var features = [];
+                try {
+                    var allFeatures = map.getSource('locations')._data.features;
+                    for (var i = 0; i < allFeatures.length; i++) {
+                        if (allFeatures[i].properties._id == event._id) {
+                            features.push(allFeatures[i]);
+                        }
                     }
                 }
-            }
-            catch(err) {
-                console.log(err);
-            }
-            app.displayPopup(features);
+                catch (err) {
+                    console.log(err);
+                }
+                app.displayPopup(features);
+            });
         }
     }
 });
