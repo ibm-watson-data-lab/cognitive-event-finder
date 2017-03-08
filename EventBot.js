@@ -224,7 +224,7 @@ class EventBot {
         let message = data.text;
         let userId = data.user;
         let token = data.token;
-        let state = this.userStateMap[userId];
+        let state = this.userStateMasp[userId];
         if (! contextVars) {
             contextVars = {};
         }
@@ -480,7 +480,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here is a list of events happening today:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -528,7 +528,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here are events featuring this speaker today:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -575,7 +575,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here is a list of event suggestions for today:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -623,7 +623,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here are some matching music events today:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -671,7 +671,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here are events featuring this artist today:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -719,7 +719,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here are some matching film events:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -767,7 +767,7 @@ class EventBot {
                 else {
                     let reply = {
                         text: 'Here are some matching film events:\n',
-                        url: this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token) + '&ids=',
+                        url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
                     let first = true;
@@ -793,29 +793,41 @@ class EventBot {
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
-        let body = this.baseUrl + '/eventList?token=' +  encodeURIComponent(state.token);
-        if (state.lastSearchResults && state.lastSearchResults.length > 0) {
-            body += '&ids=';
-            let first = true;
-            for(const point of state.lastSearchResults) {
-                if (first) {
-                    first = false;
+        return this.userStore.getUserForId(phoneNumber)
+            .then((userDoc) => {
+                let body = this.baseUrl + '/eventList';
+                if (userDoc.token) {
+                    body += '?token=';
+                    body += encodeURIComponent(userDoc.token);
+                    body += '&';
                 }
                 else {
-                    body += '%2C';
+                    body += '?';
                 }
-                body += point._id;
-            }
-        }
-        console.log(`Sending ${body} to ${phoneNumber}...`);
-        return this.sendTextMessage(phoneNumber, body)
-            .then(() => {
-                let reply = '';
-                for (let i = 0; i < response.output['text'].length; i++) {
-                    reply += response.output['text'][i] + '\n';
+                if (state.lastSearchResults && state.lastSearchResults.length > 0) {
+                    body += 'ids=';
+                    let first = true;
+                    for(const point of state.lastSearchResults) {
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            body += '%2C';
+                        }
+                        body += point._id;
+                    }
                 }
-                return Promise.resolve(reply);
+                console.log(`Sending ${body} to ${phoneNumber}...`);
+                return this.sendTextMessage(phoneNumber, body)
+                    .then(() => {
+                        let reply = '';
+                        for (let i = 0; i < response.output['text'].length; i++) {
+                            reply += response.output['text'][i] + '\n';
+                        }
+                        return Promise.resolve(reply);
+                    });
             });
+
     }
 
     formatPhoneNumber(phoneNumber) {
