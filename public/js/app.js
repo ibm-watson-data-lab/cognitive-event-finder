@@ -190,6 +190,7 @@ var app = new Vue({
             }
         },
         updateMap(data) {
+            if (popup.isOpen()) popup.remove();
             var geoj = {
                 type: "FeatureCollection"
             };
