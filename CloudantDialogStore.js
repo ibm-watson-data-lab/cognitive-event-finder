@@ -111,6 +111,12 @@ class CloudantDialogStore {
                             else if (dialog.name == 'search_suggest') {
                                 search = {type: 'suggest', message: dialog.message};
                             }
+                            else if (dialog.name == 'search_music_topic') {
+                                search = {type: 'music_topic', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_music_artist') {
+                                search = {type: 'music_artist', message: dialog.message};
+                            }
                             if (search) {
                                 const matchingSearches = searches.filter((s) => {
                                     return (s.type == search.type && s.message == search.message);

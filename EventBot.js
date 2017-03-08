@@ -7,7 +7,10 @@ const Bitly = require('bitly');
 
 class EventBot {
 
-    constructor(eventStore, userStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
+    constructor(searchResultCount, searchTimeHours, suggestedSearchTerms, eventStore, userStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
+        this.searchResultCount = searchResultCount;
+        this.searchTimeHours = searchTimeHours;
+        this.suggestedSearchTerms = suggestedSearchTerms;
         this.userStateMap = {};
         this.eventStore = eventStore;
         this.userStore = userStore;
@@ -397,7 +400,7 @@ class EventBot {
     handleRecentSearches(state, response, message) {
         this.logDialog(state, "recent_searches", message, false);
         state.conversationContext['recent_no_results'] = false;
-        return this.dialogStore.getRecentSearchesForUserId(state.userId, 5)
+        return this.dialogStore.getRecentSearchesForUserId(state.userId, this.searchResultCount)
             .then((searches) => {
                 if (! searches || searches.length == 0) {
                     const reply = {
@@ -440,6 +443,12 @@ class EventBot {
             else if (state.recentSearches[index].type == 'suggest') {
                 return this.handleSearchSuggestionMessage(state, response, state.recentSearches[index].message);
             }
+            else if (state.recentSearches[index].type == 'music_topic') {
+                return this.handleSearchMusicTopicMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'music_artist') {
+                return this.handleSearchMusicArtistMessage(state, response, state.recentSearches[index].message);
+            }
         }
         // if we got here it was an invalid selection
         const reply = {
@@ -454,7 +463,7 @@ class EventBot {
         this.logDialog(state, "search_topic", message, false);
         state.conversationContext['search_no_results'] = false;
         let topic = message;
-        return this.eventStore.findEventsByTopic(topic, 5)
+        return this.eventStore.findEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -502,7 +511,7 @@ class EventBot {
         this.logDialog(state, "search_speaker", message, false);
         state.conversationContext['search_no_results'] = false;
         let speaker = message;
-        return this.eventStore.findEventsBySpeaker(speaker, 5)
+        return this.eventStore.findEventsBySpeaker(speaker, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -549,7 +558,7 @@ class EventBot {
     handleSearchSuggestionMessage(state, response, message) {
         this.logDialog(state, "search_suggestion", message, false);
         state.conversationContext['search_no_results'] = false;
-        return this.eventStore.findSuggestedEvents(5)
+        return this.eventStore.findSuggestedEvents(this.suggestedSearchTerms, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -597,7 +606,7 @@ class EventBot {
         this.logDialog(state, "search_music_topic", message, false);
         state.conversationContext['search_no_results'] = false;
         let topic = message;
-        return this.eventStore.findMusicEventsByTopic(topic, 5)
+        return this.eventStore.findMusicEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -645,7 +654,7 @@ class EventBot {
         this.logDialog(state, "search_music_artist", message, false);
         state.conversationContext['search_no_results'] = false;
         let artist = message;
-        return this.eventStore.findMusicEventsByArtist(artist, 5)
+        return this.eventStore.findMusicEventsByArtist(artist, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {

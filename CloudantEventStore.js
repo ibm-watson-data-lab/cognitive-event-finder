@@ -7,11 +7,13 @@ class CloudantEventStore {
      * @param {Object} cloudant - The instance of cloudant to connect to
      * @param {string} dbName - The name of the database to use
      */
-    constructor(cloudant, dbName) {
+    constructor(cloudant, dbName, maxSearchTimeHours, timeWarpHours) {
         this.cloudant = cloudant;
         this.dbName = dbName;
         this.db = null;
+        this.maxSearchTimeHours = maxSearchTimeHours;
         this.millisPerHour = 60 * 60 * 1000;
+        this.timeWarpMillis = timeWarpHours * this.millisPerHour;
     }
 
     /**
@@ -32,16 +34,16 @@ class CloudantEventStore {
                         _id: '_design/search',
                         indexes: {
                             by_topic: {
-                                index: 'function (doc) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n}'
+                                index: 'function (doc) { \nif (! doc.music) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n} \n}'
                             },
                             by_speaker: {
-                                index: 'function (doc) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n}'
+                                index: 'function (doc) { \nif (! doc.music) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("speaker", doc.speakers[i].name, {}); \n} \n} \n} \n}'
                             },
                             by_music_topic: {
-                                index: 'function (doc) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.music) { \nif (doc.genre) { \nindex("genre", doc.genre, {boost: 5}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 5}); \n} \n} \n} \n}'
+                                index: 'function (doc) { \nif (doc.music) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.genre) { \nindex("genre", doc.genre, {boost: 5}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 5}); \n} \n} \n} \n}'
                             },
                             by_music_artist: {
-                                index: 'function (doc) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.music) { \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {}); \n} \n} \n} \n}'
+                                index: 'function (doc) { \nif (doc.music && doc._id.substring(0,2) == "ms") { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nindex("artist", doc.name, {boost: 10}); \n} \n}'
                             }
                         }
                     };
@@ -59,11 +61,9 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findEventsByTopic(searchStr, count) {
-        var from = Date.now();
-        var to = from + (this.millisPerHour * 24 * 14);
-        var query = `date:[${from} TO ${to}] AND (name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr})`;
-        return this.findEvents('search', 'by_topic', query, count);
+    findEventsByTopic(searchStr, searchTimeHours, count) {
+        let query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr}`;
+        return this.findEvents('search', 'by_topic', query, searchTimeHours, count);
     }
 
     /**
@@ -72,8 +72,8 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findEventsBySpeaker(searchStr, count) {
-        return this.findEvents('search', 'by_speaker', `speaker:${searchStr}`, count);
+    findEventsBySpeaker(searchStr, searchTimeHours, count) {
+        return this.findEvents('search', 'by_speaker', `speaker:${searchStr}`, searchTimeHours, count);
     }
 
     /**
@@ -81,8 +81,19 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findSuggestedEvents(count) {
-        return this.findEvents('search', 'by_speaker', '*:*', count);
+    findSuggestedEvents(searchTerms, searchTimeHours, count) {
+        let query = '';
+        let first = true;
+        for (const searchTerm of searchTerms) {
+            if (first) {
+                first = false;
+            }
+            else {
+                query += 'OR ';
+            }
+            query += `(name:${searchTerm} OR description:${searchTerm} OR track:${searchTerm} OR tag:${searchTerm})`;
+        }
+        return this.findEvents('search', 'by_topic', query, searchTimeHours, count);
     }
 
     /**
@@ -91,9 +102,9 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findMusicEventsByTopic(searchStr, count) {
-        var query = `name:${searchStr} OR description:${searchStr} OR genre:${searchStr} OR artist:${searchStr}`;
-        return this.findEvents('search', 'by_music_topic', query, count);
+    findMusicEventsByTopic(searchStr, searchTimeHours, count) {
+        let query = `name:${searchStr} OR description:${searchStr} OR genre:${searchStr} OR artist:${searchStr}`;
+        return this.findEvents('search', 'by_music_topic', query, searchTimeHours, count);
     }
 
     /**
@@ -102,8 +113,8 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findMusicEventsByArtist(searchStr, count) {
-        return this.findEvents('search', 'by_music_artist', `artist:${searchStr}`, count);
+    findMusicEventsByArtist(searchStr, searchTimeHours, count) {
+        return this.findEvents('search', 'by_music_artist', `artist:${searchStr}`, searchTimeHours, count);
     }
 
     /**
@@ -111,16 +122,20 @@ class CloudantEventStore {
      * @param designDoc
      * @param searchIndex
      * @param query
+     * @param searchTimeHours
      * @param count
      * @returns {Promise.<TResult>}
      */
-    findEvents(designDoc, searchIndex, query, count) {
-        return this.db.search(designDoc, searchIndex, {q:query, include_docs:true})
+    findEvents(designDoc, searchIndex, query, searchTimeHours, count) {
+        const from = Date.now() + this.timeWarpMillis;
+        const to = from + (this.millisPerHour * searchTimeHours);
+        const queryWithDate = `date:[${from} TO ${to}] AND (${query})`;
+        return this.db.search(designDoc, searchIndex, {q:queryWithDate, include_docs:true})
             .then((result) => {
                 if (result.rows) {
-                    var events = [];
-                    var i = -1;
-                    for (var row of result.rows) {
+                    let events = [];
+                    let i = -1;
+                    for (const row of result.rows) {
                         if (count <= 0 || ++i < count) {
                             events.push(row.doc);
                         }
@@ -128,7 +143,12 @@ class CloudantEventStore {
                             break;
                         }
                     }
-                    return Promise.resolve(events);
+                    if (events.length >= 1 || searchTimeHours >= this.maxSearchTimeHours) {
+                        return Promise.resolve(events);
+                    }
+                    else {
+                        return this.findEvents(designDoc, searchIndex, query, (searchTimeHours*2), count);
+                    }
                 }
                 else {
                     return Promise.resolve();
