@@ -72,7 +72,12 @@ var app = new Vue({
         },
         initMap(onMapLoaded) {
             if (app.mapLoaded) {
-                return onMapLoaded();
+                if (onMapLoaded) {
+                    return onMapLoaded();
+                }
+                else {
+                    return;
+                }
             }
             else {
                 app.mapLoaded = true;

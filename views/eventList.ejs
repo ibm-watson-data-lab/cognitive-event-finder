@@ -16,12 +16,20 @@
 </head>
 <body>
 
-<header class="app-banner col12 contain">
-    <img src="img/Watson_Avatar_Rev_RGB.png" id="watson_avatar_banner">
-    <span class="app-banner-title">SXSW Events</span>
+<header class="col12 contain">
+    <div class="app-banner col12">
+        <img src="img/Watson_Avatar_Rev_RGB.png" id="watson_avatar_banner">
+        <div id="app-banner-title">
+            <div id="app-banner-title-head">SXSW personal<span class="cursor"></span></div>
+            <div id="app-banner-title-subhead">by IBM Watson</div>
+        </div>
+    </div>
+    <div class="no-mobile-hide session-alt col12">
+        <div class="mobile-btn mapchat-btn mobile-show" id="showchatbtn" onclick="mapToggle()">Chat</div>
+    </div>
 </header>
 <div id="container" class="container">
-    <div class='map' id='map'>
+    <div class='map mobile-show' id='map'>
         <div id="opensource-section">
             <a href="https://github.com/ibm-cds-labs/cognitive-event-finder" target="_wdpgh">
                 <img src="img/GitHub-Mark-Light-32px.png" alt="github mark" id="ghmark">

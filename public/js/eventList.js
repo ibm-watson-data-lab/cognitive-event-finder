@@ -7,70 +7,109 @@ var map;
 var app = new Vue({
     el: '#events',
     data: {
-        events: []
+        events: [],
+        mapLoaded: false
     },
     methods: {
         init() {
             app.events = events;
-            mapboxgl.accessToken = mapboxAccessToken;
-            var bounds = [
-                [-98, 29],
-                [-97, 31]
-            ] // Austin city bounds
-
-            map = new mapboxgl.Map({
-                container: "map",
-                style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
-                center: [-97.74306, 30.26715],
-                zoom: 12,
-                pitch: 30
-            });
-
-            map.on('load', function() {
-                app.updateMap(events)
+            app.initMap(function () {
+                app.updateMap(app.events);
             });
         },
-        updateMap(data) {
-            geoj = {
-                "type": "FeatureCollection",
-                "features": []
+        initMap(onMapLoaded) {
+            if (app.mapLoaded) {
+                return onMapLoaded();
             }
-            data.forEach(function(feat) {
-                let properties = {};
-                for (key in feat) {
-                    properties[key] = feat[key]
-                }
-                geoj.features.push({
-                    'geometry': feat.geometry,
-                    'properties': properties
+            else {
+                app.mapLoaded = true;
+                mapboxgl.accessToken = mapboxAccessToken;
+                var bounds = [
+                    [-98, 29],
+                    [-97, 31]
+                ]; // Austin city bounds
+                map = new mapboxgl.Map({
+                    container: "map",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1?fresh=true",
+                    center: [-97.74306, 30.26715],
+                    zoom: 14,
+                    pitch: 30
                 });
-            })
+                map.on('load', onMapLoaded);
+            }
+        },
+        updateMap(points) {
+            if (popup.isOpen()) popup.remove();
+            var geoj = {
+                type: "FeatureCollection"
+            };
+            var features = [];
+            var point;
+            var feature;
+            var min = [];
+            var max = [];
+            for (var i = 0; i < points.length; i++) {
+                point = points[i];
+                feature = {
+                    type: "Feature"
+                };
+                feature.properties = {};
+                for (var prop in point) {
+                    if (point.hasOwnProperty(prop)) {
+                        if (prop == "geometry") {
+                            feature.geometry = {};
+                            if (!point[prop].type) {
+                                feature.geometry.type = "Point";
+                            } else {
+                                feature.geometry.type = point[prop].type;
+                            }
+                            // something is screwy with data so do this weird hack
+                            if (point.geometry.coordinates[0] < 0) // 0 is x
+                                feature.geometry.coordinates = point.geometry.coordinates;
+                            else
+                                feature.geometry.coordinates = [point.geometry.coordinates[1], point.geometry.coordinates[0]];
+                        } else { // end geometry
+                            feature.properties[prop] = point[prop];
+                        }
+                    }
+                }
 
+                if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates.length == 2 && feature.geometry.coordinates[0] && feature.geometry.coordinates[1]) {
+                    features.push(feature);
+                }
+            }
+            geoj.features = features;
             if (!geoj.features.length) {
                 console.log('no results!')
                 return
             }
 
-            var bbox = turf.bbox(geoj)
+            var bbox = turf.bbox(geoj);
+            // console.log("geoj bbox: " + bbox);
 
             if (!map.getSource('locations')) {
                 map.addSource('locations', {
                     "type": "geojson",
-                    "data": geoj
+                    "data": geoj,
+                    "cluster": false,
+                    "clusterMaxZoom": 20,
+                    "clusterRadius": 5
                 });
             } else {
                 map.getSource('locations').setData(geoj)
             }
 
             if (!map.getLayer('eventsLayer')) {
-
                 map.addLayer({
-                    "id": "eventslayer",
+                    "id": "eventsLayer",
                     "type": "symbol",
                     "source": 'locations',
                     "layout": {
-                        "icon-image": "marker-101",
-                        "icon-size": 0.2
+                        "icon-image": "doc-icon",
+                        "icon-size": {
+                            "stops": [[7, 0.4], [15, 0.6]]
+                        },
+                        "icon-allow-overlap": true
                     }
                 }, 'events-label');
             }
@@ -87,44 +126,49 @@ var app = new Vue({
                 }
             }
 
-            map.on('mousemove', function(e) {
-                let buffer = 8
+            map.on('click', function (e) {
+                let buffer = 3
                 minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
                 maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
                 var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
-                    layers: ["eventslayer"]
+                    layers: ["eventsLayer"]
                 });
+                app.displayPopup(fs);
+            });
+        },
+        displayPopup(fs) {
+            map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+            if (!fs.length) {
+                popup.remove();
+                return;
+            }
+            ;
+            if (fs.length > 1) {
+                popuphtml = "";
+                fs.forEach(function (f) {
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                    popuphtml += "<div class='popup-title'>" + titl + "</div>";
+                    if (f.properties.description) {
+                        var desc = f.properties.description;
+                        if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
+                        popuphtml += "<p>" + desc + "</p>";
+                    }
 
-                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) {
-                    popup.remove();
-                    return;
-                };
-
-                if ((navigator.platform.indexOf("iPhone") != -1) || (navigator.platform.indexOf("iPod") != -1) || (navigator.platform.indexOf("iPad") != -1))
-                    window.open("maps://maps.google.com/maps?daddr=lat,long&amp;ll=");
-                else
-                    window.open("http://maps.google.com/maps?daddr=lat,long&amp;ll=");
-                console.log(fs)
-                if (fs.length > 1) {
-                    popuphtml = "";
-                    fs.forEach(function(f) {
-                        navlink = 'maps://maps.google.com/maps?daddr=' + f.geometry.coordinates[1] + "," + f.geometry.coordinates[0]
-                        titl = "<a href=" + navlink + " target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                        popuphtml += "<span class='popup-title'>" + titl + "</span><p>" + f.properties.description.substring(0, 50) + "...</p>";
-                    }, this);
-                    popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
-                } else {
-                    var f = fs[0];
-                    navlink = 'maps://maps.google.com/maps?daddr=' + f.geometry.coordinates[1] + "," + f.geometry.coordinates[0]
-                    titl = "<a href=" + navlink + " target='_sxswsessiondesc'>" + " Navigtate to: " + f.properties.name  + "</a>"
+                }, this);
+                popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+            } else {
+                var f = fs[0];
+                if (!f.properties.cluster) {
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
                     popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                    var desc = f.properties.description;
+                    if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
                     if (f.properties.img_url && f.properties.img_url != 'undefined')
                         popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
-                    popuphtml += f.properties.description + "</div>";
+                    popuphtml += desc + "</div>";
                     popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
                 }
-            });
+            }
         }
     }
 });
@@ -132,6 +176,8 @@ var app = new Vue({
 (function() {
     // Initialize vue app
     app.init();
-    console.log(events)
-
 })();
+
+function mapToggle() {
+    window.location = "/";
+}
