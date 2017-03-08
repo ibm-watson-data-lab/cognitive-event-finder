@@ -41,15 +41,19 @@
                 <div class="msg-body" v-bind:style="msg.msgStyle">
                     <div v-bind:style="msg.userStyle" class="msg-user" v-html="msg.user"></div>
                     <div class="msg-chat bubble" v-bind:class="[msg.isUser ? 'userBubble' : '']">
-                        <ul v-if="msg.data.points">
-                            <b>Here is a list of event suggestions for today:</b><br>
-                            <li v-for="event in msg.data.points" v-on:click="openPopup(event)">{{ event.name }}</li>
-                        </ul>
-                        <ul v-if="msg.data.searches">
+                        <div v-if="msg.data.points">
+                            <ul>
+                                <b>Here is a list of event suggestions for today:</b><br>
+                                <li v-for="event in msg.data.points" v-on:click="openPopup(event)">{{ event.name }}</li>
+                            </ul>
+                        </div>
+                        <div v-if="msg.data.searches">
                             <b>Here is a list of your recent searches:</b><br>
-                            <li v-for="search in msg.data.searches">{{ event.name }}</li>
-                        </ul>
-                        <span v-if="! msg.data.points && ! msg.data.searches">{{ msg.data.text }}</span>
+                            <ul>
+                                <li v-for="(search, index) in msg.data.searches" v-on:click="runRecentSearch(index+1)">{{ index+1 }}. {{ search.type }} {{ search.message }}</li>
+                            </ul>
+                        </div>
+                        <div v-if="! msg.data.points && ! msg.data.searches">{{ msg.data.text }}</div>
                     </div>
                 </div>
             </div>

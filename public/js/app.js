@@ -125,7 +125,7 @@ var app = new Vue({
                 app.webSocket.onmessage = function(evt) {
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
-                    if (data.type == 'msg' || data.type == 'map') {
+                    if (data.type == 'msg') {
                         console.log('Message received: ' + evt.data);
                         var message = {
                             user: botUsername,
@@ -145,7 +145,7 @@ var app = new Vue({
                         Vue.nextTick(function() { // scroll messages to bottom of window
                             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                         });
-                        if (data.type == 'map') {
+                        if (data.points) {
                             mapToggle(function() {
                                 app.updateMap(data);
                             });
@@ -188,6 +188,10 @@ var app = new Vue({
             } else {
                 alert("WebSocket not supported browser.");
             }
+        },
+        runRecentSearch(index) {
+            app.message = index + '';
+            app.submitMessage();
         },
         updateMap(data) {
             if (popup.isOpen()) popup.remove();
@@ -326,7 +330,6 @@ var app = new Vue({
             try {
                 var allFeatures = map.getSource('locations')._data.features;
                 for (var i = 0; i < allFeatures.length; i++) {
-                    console.log(allFeatures[i].properties._id + ' == ? ' + event._id);
                     if (allFeatures[i].properties._id == event._id) {
                         features.push(allFeatures[i]);
                     }

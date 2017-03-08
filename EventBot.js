@@ -2,8 +2,8 @@
 
 const ConversationV1 = require('watson-developer-cloud/conversation/v1');
 const WebSocketBot = require('./WebSocketBot');
-const uuidV4 = require('uuid/v4');
 const Bitly = require('bitly');
+const uuidV4 = require('uuid/v4');
 
 class EventBot {
 
@@ -120,12 +120,7 @@ class EventBot {
                         return this.processMessage(data);
                     })
                     .then((reply) => {
-                        if (reply.points) {
-                            this.sendMapMessageToClient(client, reply);
-                        }
-                        else {
-                            this.sendTextMessageToClient(client, reply);
-                        }
+                        this.sendMessageToClient(client, reply);
                         let url = this.baseUrl + '?token=' + encodeURIComponent(user.token);
                         return this.bitly.shorten(url)
                             .then((response) => {
@@ -162,12 +157,7 @@ class EventBot {
                             // if this is controlling another client update that client
                             this.sendOutputMessageToUserId(remoteControlId, reply);
                         }
-                        if (reply.points) {
-                            this.sendMapMessageToClient(client, reply);
-                        }
-                        else {
-                            this.sendTextMessageToClient(client, reply);
-                        }
+                        this.sendMessageToClient(client, reply);
                     });
             }
         }
@@ -214,22 +204,13 @@ class EventBot {
         return remoteControlEnabled;
     }
 
-    sendTextMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username});
-    }
-
-    sendMapMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points, url:message.url});
+    sendMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username, points:message.points, url:message.url, searches:message.searches});
     }
 
     sendOutputMessageToUserId(userId, message) {
         if (this.webSocketClientsByUserId[userId]) {
-            if (message.points) {
-                this.sendMapMessageToClient(this.webSocketClientsByUserId[userId], message);
-            }
-            else {
-                this.sendTextMessageToClient(this.webSocketClientsByUserId[userId], message);
-            }
+            this.sendMessageToClient(this.webSocketClientsByUserId[userId], message);
         }
     }
 
@@ -490,6 +471,7 @@ class EventBot {
                     };
                     let first = true;
                     for (const event of events) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
@@ -537,6 +519,7 @@ class EventBot {
                     };
                     let first = true;
                     for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
@@ -583,6 +566,7 @@ class EventBot {
                     };
                     let first = true;
                     for (const event of events) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
@@ -630,6 +614,7 @@ class EventBot {
                     };
                     let first = true;
                     for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
@@ -677,6 +662,7 @@ class EventBot {
                     };
                     let first = true;
                     for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
@@ -799,6 +785,26 @@ class EventBot {
         if (state) {
             this.clearUserState(state);
         }
+    }
+
+    decodeHtmlSpecialChars(text) {
+        var entities = [
+            ['amp', '&'],
+            ['apos', '\''],
+            ['#x27', '\''],
+            ['#x2F', '/'],
+            ['#39', '\''],
+            ['#47', '/'],
+            ['lt', '<'],
+            ['gt', '>'],
+            ['nbsp', ' '],
+            ['quot', '"']
+        ];
+
+        for (var i = 0, max = entities.length; i < max; ++i)
+            text = text.replace(new RegExp('&' + entities[i][0] + ';', 'g'), entities[i][1]);
+
+        return text;
     }
 }
 
