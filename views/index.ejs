@@ -41,7 +41,15 @@
                 <div class="msg-body" v-bind:style="msg.msgStyle">
                     <div v-bind:style="msg.userStyle" class="msg-user" v-html="msg.user"></div>
                     <div class="msg-chat bubble" v-bind:class="[msg.isUser ? 'userBubble' : '']">
-                        <chat-message :key="msg.key" :msg="msg"></chat-message>
+                        <ul v-if="msg.data.points">
+                            <b>Here is a list of event suggestions for today:</b><br>
+                            <li v-for="event in msg.data.points" v-on:click="openPopup(event)">{{ event.name }}</li>
+                        </ul>
+                        <ul v-if="msg.data.searches">
+                            <b>Here is a list of your recent searches:</b><br>
+                            <li v-for="search in msg.data.searches">{{ event.name }}</li>
+                        </ul>
+                        <span v-if="! msg.data.points && ! msg.data.searches">{{ msg.data.text }}</span>
                     </div>
                 </div>
             </div>

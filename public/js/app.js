@@ -250,7 +250,6 @@ var app = new Vue({
             }
 
             if (!map.getLayer('eventsLayer')) {
-
                 map.addLayer({
                     "id": "eventsLayer",
                     "type": "symbol",
@@ -284,42 +283,58 @@ var app = new Vue({
                 var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                     layers: ["eventsLayer"]
                 });
-
-                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) {
-                    popup.remove();
-                    return;
-                };
-
-                // console.log(fs);
-
-                if (fs.length > 1) {
-                    popuphtml = "";
-                    fs.forEach(function(f) {
-                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                        popuphtml += "<div class='popup-title'>" + titl + "</div>";
-                        if (f.properties.description) {
-                            var desc = f.properties.description;
-                            if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
-                            popuphtml += "<p>" + desc + "</p>";
-                        }
-
-                    }, this);
-                    popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
-                } else {
-                    var f = fs[0];
-                    if (!f.properties.cluster) {
-                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
-                        popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                app.displayPopup(fs);
+            });
+        },
+        displayPopup(fs) {
+            map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+            if (!fs.length) {
+                popup.remove();
+                return;
+            };
+            if (fs.length > 1) {
+                popuphtml = "";
+                fs.forEach(function(f) {
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                    popuphtml += "<div class='popup-title'>" + titl + "</div>";
+                    if (f.properties.description) {
                         var desc = f.properties.description;
-                        if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
-                        if (f.properties.img_url && f.properties.img_url != 'undefined')
-                            popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
-                        popuphtml += desc + "</div>";
-                        popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                        if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
+                        popuphtml += "<p>" + desc + "</p>";
+                    }
+
+                }, this);
+                popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+            } else {
+                var f = fs[0];
+                if (!f.properties.cluster) {
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
+                    popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                    var desc = f.properties.description;
+                    if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
+                    if (f.properties.img_url && f.properties.img_url != 'undefined')
+                        popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
+                    popuphtml += desc + "</div>";
+                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                }
+            }
+        },
+        openPopup(event) {
+            map.panTo(event.geometry.coordinates);
+            var features = [];
+            try {
+                var allFeatures = map.getSource('locations')._data.features;
+                for (var i = 0; i < allFeatures.length; i++) {
+                    console.log(allFeatures[i].properties._id + ' == ? ' + event._id);
+                    if (allFeatures[i].properties._id == event._id) {
+                        features.push(allFeatures[i]);
                     }
                 }
-            });
+            }
+            catch(err) {
+                console.log(err);
+            }
+            app.displayPopup(features);
         }
     }
 });
@@ -334,14 +349,3 @@ function mapToggle(onMapLoad) {
     $('#map, #app, .mapchat-btn').toggleClass('mobile-hide mobile-show');
     app.initMap(onMapLoad);
 }
-
-Vue.component('chat-message', {
-    props: ['msg'],
-    render: function(createElement) {
-        return createElement('div', {
-            domProps: {
-                innerHTML: this.msg.data.text
-            }
-        });
-    }
-});

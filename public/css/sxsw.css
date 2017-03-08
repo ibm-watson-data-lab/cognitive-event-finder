@@ -109,6 +109,10 @@ html {
     overflow: hidden;
 }
 
+li {
+    cursor: pointer;
+}
+
 
 .center {
     margin: auto;

@@ -415,15 +415,16 @@ class EventBot {
                         text: 'Here is a list of your recent searches:\n',
                         searches: []
                     };
-                    reply.text += '<ul>';
                     let i = 0;
                     for (const search of searches) {
+                        if (i > 0) {
+                            reply.text += '\n';
+                        }
                         i++;
-                        reply.text += '<li>' + i + '. ' + search.type + ': ' + search.message + '</li>';
+                        reply.text += i + '. ' + search.type + ': ' + search.message;
                         reply.searches.push(search);
                     }
-                    reply.text += '</ul>';
-                    state.recentSearches = reply.searches
+                    state.recentSearches = reply.searches;
                     return Promise.resolve(reply);
                 }
             });
@@ -483,24 +484,23 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here is a list of events happening today:</b><br/>',
+                        text: 'Here is a list of events happening today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of events) {
-                        reply.text += '<li>' + event.name + '</li>';
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -531,24 +531,23 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here are events featuring this speaker today:</b><br/>',
+                        text: 'Here are events featuring this speaker today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -582,20 +581,19 @@ class EventBot {
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of events) {
-                        reply.text += '<li>' + event.name + '</li>';
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -626,24 +624,23 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here are some matching music events today:</b><br/>',
+                        text: 'Here are some matching music events today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -674,24 +671,23 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here are events featuring this artist today:</b><br/>',
+                        text: 'Here are events featuring this artist today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
