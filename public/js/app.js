@@ -88,11 +88,12 @@ var app = new Vue({
                 ]; // Austin city bounds
                 map = new mapboxgl.Map({
                     container: "map",
-                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1?fresh=true",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                     center: [-97.74306, 30.26715],
                     zoom: 14,
                     pitch: 30
                 });
+                map.addControl(new mapboxgl.NavigationControl(), 'top-left');
                 map.on('load', onMapLoaded);
             }
         },

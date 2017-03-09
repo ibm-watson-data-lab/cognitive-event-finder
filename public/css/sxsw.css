@@ -5,7 +5,12 @@
     width: 100%;
 }
 
-.watson_avatar, .anon_avatar {
+.mapboxgl-ctrl-group {
+    -webkit-filter: invert(100%);
+}
+
+.watson_avatar,
+.anon_avatar {
     background-color: #000;
     padding: 3px;
     border-radius: 96px;
@@ -52,10 +57,12 @@
     text-shadow: 2px 2px 4px #404040;
     overflow: hidden;
 }
+
 #app-banner-title-head {
     font-size: 30px;
     font-weight: 700;
 }
+
 #app-banner-title-subhead {
     font-size: 16px;
     font-weight: 500;
@@ -81,12 +88,13 @@
     color: #fff;
 }
 
-
 a {
     color: #404040;
     text-decoration: underline !important;
 }
-a:hover, a:active {
+
+a:hover,
+a:active {
     color: #000;
 }
 
@@ -231,6 +239,7 @@ a {
     border-width: 0 15px 15px 0;
     border-color: #bbbbbb transparent;
 }
+
 .userBubble {
     margin-right: 12px;
     float: right;
@@ -262,9 +271,10 @@ a {
 }
 
 .convo-section {
-    -webkit-box-shadow: 2px 2px 2px 2px rgba(128,128,128,0.5);
-    box-shadow: 2px 2px 2px 2px rgba(128,128,128,0.5);
+    -webkit-box-shadow: 2px 2px 2px 2px rgba(128, 128, 128, 0.5);
+    box-shadow: 2px 2px 2px 2px rgba(128, 128, 128, 0.5);
 }
+
 
 /* mobile */
 
@@ -285,6 +295,7 @@ a {
     display: none;
 }
 
+
 /* Mobile rules */
 
 @media only screen and (max-width: 960px) {
@@ -294,7 +305,6 @@ a {
     .mobile-show {
         display: block !important;
     }
-
     .container {
         position: fixed;
         width: 100%;
@@ -328,7 +338,6 @@ a {
         padding: 0px;
         border-radius: 0px;
     }
-
     #chat-messages {
         position: absolute;
         top: 40px;
@@ -338,21 +347,18 @@ a {
         overflow-y: scroll;
         padding: 10px;
     }
-
     #chat-form {
         position: fixed;
         top: 110px;
         bottom: auto;
         width: 100%;
     }
-
     #message {
         padding: 10px;
         background-color: #eeeeee;
         border-color: gray;
         border-width: 2px;
     }
-
     #map {
         display: none;
         z-index: 2;
