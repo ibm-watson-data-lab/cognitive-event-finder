@@ -35,7 +35,7 @@
 }
 
 .app-banner {
-    background-image: url('../img/woodslats_ibm.png');
+    /*background-image: url('../img/woodslats_ibm.png');*/
     background-size: 14%;
     align-self: center;
     background-position: right;
