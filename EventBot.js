@@ -793,37 +793,43 @@ class EventBot {
         let phoneNumber = this.formatPhoneNumber(message);
         return this.userStore.getUserForId(phoneNumber)
             .then((userDoc) => {
-                let body = this.baseUrl + '/eventList';
+                let url = this.baseUrl + '/eventList';
                 if (userDoc && userDoc.token) {
-                    body += '?token=';
-                    body += encodeURIComponent(userDoc.token);
-                    body += '&';
+                    url += '?token=';
+                    url += encodeURIComponent(userDoc.token);
+                    url += '&';
                 }
                 else {
-                    body += '?';
+                    url += '?';
                 }
                 if (state.lastSearchResults && state.lastSearchResults.length > 0) {
-                    body += 'ids=';
+                    url += 'ids=';
                     let first = true;
                     for(const point of state.lastSearchResults) {
                         if (first) {
                             first = false;
                         }
                         else {
-                            body += '%2C';
+                            url += '%2C';
                         }
-                        body += point._id;
+                        url += point._id;
                     }
                 }
-                console.log(`Sending ${body} to ${phoneNumber}...`);
-                return this.sendTextMessage(phoneNumber, body)
-                    .then(() => {
-                        let reply = '';
-                        for (let i = 0; i < response.output['text'].length; i++) {
-                            reply += response.output['text'][i] + '\n';
-                        }
-                        return Promise.resolve(reply);
+                return this.bitly.shorten(url)
+                    .then((response) => {
+                        let body = 'Go here to view your events: ';
+                        body += response.data.url;
+                        console.log(`Sending ${body} to ${phoneNumber}...`);
+                        return this.sendTextMessage(phoneNumber, url)
+                            .then(() => {
+                                let reply = '';
+                                for (let i = 0; i < response.output['text'].length; i++) {
+                                    reply += response.output['text'][i] + '\n';
+                                }
+                                return Promise.resolve(reply);
+                            });
                     });
+                
             });
 
     }
