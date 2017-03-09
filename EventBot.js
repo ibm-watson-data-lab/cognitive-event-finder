@@ -801,6 +801,7 @@ class EventBot {
                 }
                 else {
                     url += '?';
+                    url += '?';
                 }
                 if (state.lastSearchResults && state.lastSearchResults.length > 0) {
                     url += 'ids=';
@@ -816,9 +817,9 @@ class EventBot {
                     }
                 }
                 return this.bitly.shorten(url)
-                    .then((response) => {
+                    .then((bitlyResponse) => {
                         let body = 'Go here to view your events: ';
-                        body += response.data.url;
+                        body += bitlyResponse.data.url;
                         console.log(`Sending ${body} to ${phoneNumber}...`);
                         return this.sendTextMessage(phoneNumber, url)
                             .then(() => {
