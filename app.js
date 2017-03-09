@@ -19,6 +19,8 @@ let cloudantDialogStore;
 let cloudantEventStore;
 let cloudantUserStore;
 let eventBot;
+let appUrl = process.env.APP_URL || appEnv.url;
+let appPort = process.env.PORT || appEnv.port;
 
 (function() {
     // load environment variables
@@ -48,7 +50,7 @@ let eventBot;
         new TwilioRestClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN),
         process.env.TWILIO_PHONE_NUMBER,
         http,
-        appEnv.url,
+        appUrl,
         process.env.BITLY_ACCESS_TOKEN
     );
     eventBot.run();
@@ -63,7 +65,7 @@ app.set('view engine', 'ejs');
 // map requests
 app.get('/', (req, res) => {
     res.render('index.ejs', {
-        webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
+        webSocketProtocol: appUrl.indexOf('http://') == 0 ? 'ws://' : 'wss://',
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
         token: req.query.token || uuidV4()
     });
@@ -127,8 +129,8 @@ app.get('/sms', (req, res) => {
 });
 
 // start server on the specified port and binding host
-http.listen(appEnv.port, appEnv.bind, () => {
-    console.log("Server starting on " + appEnv.url);
+http.listen(appPort, () => {
+    console.log("Server starting on " + appUrl);
 });
 
 //require("cf-deployment-tracker-client").track();
