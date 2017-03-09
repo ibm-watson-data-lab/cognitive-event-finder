@@ -821,7 +821,7 @@ class EventBot {
                         let body = 'Go here to view your events: ';
                         body += bitlyResponse.data.url;
                         console.log(`Sending ${body} to ${phoneNumber}...`);
-                        return this.sendTextMessage(phoneNumber, url)
+                        return this.sendTextMessage(phoneNumber, body)
                             .then(() => {
                                 let reply = '';
                                 for (let i = 0; i < response.output['text'].length; i++) {
