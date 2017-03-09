@@ -127,10 +127,10 @@ a {
 
 .sidebar {
     font-size: 10pt;
-    padding: 12px;
+    padding: 15px;
     background-color: rgba(255, 255, 255, 0.85);
     width: 320px;
-    height: 320px;
+    height: 500px;
     right: 20px;
     bottom: 20px;
     position: absolute;
