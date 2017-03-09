@@ -23,15 +23,22 @@ let eventBot;
 (function() {
     // load environment variables
     dotenv.config();
-    // cloudant
+    let suggestedSearchTerms = (process.env.SUGGESTED_SEARCH_TERMS || 'ibm,map,cognitive').split(',');
+    let searchResultCount = parseInt(process.env.SEARCH_RESULT_COUNT) || 5;
+    let searchTimeHours = parseInt(process.env.SEARCH_TIME_HOURS) || 8;
+    let maxSearchTimeHours = parseInt(process.env.MAX_SEARCH_TIME_HOURS) || 8;
+    let warpTimeHours = parseInt(process.env.WARP_TIME_HOURS) || 0;
     let cloudantClient = cloudant({
         url: process.env.CLOUDANT_URL,
         plugin:'promises'
     });
     cloudantDialogStore = new CloudantDialogStore(cloudantClient, process.env.CLOUDANT_DIALOG_DB_NAME);
-    cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME);
+    cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME, maxSearchTimeHours, warpTimeHours);
     cloudantUserStore = new CloudantUserStore(cloudantClient, process.env.CLOUDANT_USER_DB_NAME);
     eventBot = new EventBot(
+        searchResultCount,
+        searchTimeHours,
+        suggestedSearchTerms,
         cloudantEventStore,
         cloudantUserStore,
         cloudantDialogStore,
@@ -62,35 +69,6 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/chat', (req, res) => {
-    res.render('chat.ejs', {
-        webSocketProtocol: appEnv.url.indexOf('http://') == 0 ? 'ws://' : 'wss://',
-        token: req.query.token || uuidV4()
-    });
-});
-
-app.get('/events', (req, res) => {
-    let promise;
-    let ids = req.query.ids;
-    if (ids) {
-        promise = cloudantEventStore.getEventsForIds(ids.split(","));
-    }
-    else {
-        promise = cloudantEventStore.findSuggestedEvents(5);
-    }
-    promise.then((events) => {
-        let text = 'Here is a list of events:\n';
-        for (var event of events) {
-            text += '\n' + event.name;
-        }
-        res.render('events.ejs', {
-            text: text,
-            events: JSON.stringify(events),
-            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
-        });
-    });
-});
-
 app.get('/eventList', (req, res) => {
     let promise;
     let ids = req.query.ids;
@@ -104,7 +82,8 @@ app.get('/eventList', (req, res) => {
         res.render('eventList.ejs', {
             events: events,
             eventJson: JSON.stringify(events),
-            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN
+            mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
+            token: req.query.token || uuidV4()
         });
     });
 });

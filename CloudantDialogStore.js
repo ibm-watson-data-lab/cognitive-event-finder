@@ -103,13 +103,25 @@ class CloudantDialogStore {
                             }
                             let search = null;
                             if (dialog.name == 'search_topic') {
-                                search = {type: 'topic', message: dialog.message};
+                                search = {type: 'topic', typeFriendly: 'Topic', message: dialog.message};
                             }
                             else if (dialog.name == 'search_speaker') {
-                                search = {type: 'speaker', message: dialog.message};
+                                search = {type: 'speaker', typeFriendly: 'Speaker', message: dialog.message};
                             }
                             else if (dialog.name == 'search_suggest') {
-                                search = {type: 'suggest', message: dialog.message};
+                                search = {type: 'suggest', typeFriendly: 'Suggested', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_music_topic') {
+                                search = {type: 'music_topic', typeFriendly: 'Music', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_music_artist') {
+                                search = {type: 'music_artist', typeFriendly: 'Artist', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_film_topic') {
+                                search = {type: 'film_topic', typeFriendly: 'Film', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_film_cast') {
+                                search = {type: 'film_cast', typeFriendly: 'Cast', message: dialog.message};
                             }
                             if (search) {
                                 const matchingSearches = searches.filter((s) => {

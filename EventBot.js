@@ -2,12 +2,15 @@
 
 const ConversationV1 = require('watson-developer-cloud/conversation/v1');
 const WebSocketBot = require('./WebSocketBot');
-const uuidV4 = require('uuid/v4');
 const Bitly = require('bitly');
+const uuidV4 = require('uuid/v4');
 
 class EventBot {
 
-    constructor(eventStore, userStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
+    constructor(searchResultCount, searchTimeHours, suggestedSearchTerms, eventStore, userStore, dialogStore, conversationUsername, conversationPassword, conversationWorkspaceId, twilioClient, twilioPhoneNumber, httpServer, baseUrl, bitlyAccessToken) {
+        this.searchResultCount = searchResultCount;
+        this.searchTimeHours = searchTimeHours;
+        this.suggestedSearchTerms = suggestedSearchTerms;
         this.userStateMap = {};
         this.eventStore = eventStore;
         this.userStore = userStore;
@@ -117,13 +120,8 @@ class EventBot {
                         return this.processMessage(data);
                     })
                     .then((reply) => {
-                        if (reply.points) {
-                            this.sendMapMessageToClient(client, reply);
-                        }
-                        else {
-                            this.sendTextMessageToClient(client, reply);
-                        }
-                        let url = this.baseUrl + '/chat?token=' + encodeURIComponent(user.token);
+                        this.sendMessageToClient(client, reply);
+                        let url = this.baseUrl + '?token=' + encodeURIComponent(user.token);
                         return this.bitly.shorten(url)
                             .then((response) => {
                                 let text = reply.text.replace(/\s+$/g, '');
@@ -159,12 +157,7 @@ class EventBot {
                             // if this is controlling another client update that client
                             this.sendOutputMessageToUserId(remoteControlId, reply);
                         }
-                        if (reply.points) {
-                            this.sendMapMessageToClient(client, reply);
-                        }
-                        else {
-                            this.sendTextMessageToClient(client, reply);
-                        }
+                        this.sendMessageToClient(client, reply);
                     });
             }
         }
@@ -211,22 +204,13 @@ class EventBot {
         return remoteControlEnabled;
     }
 
-    sendTextMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username});
-    }
-
-    sendMapMessageToClient(client, message) {
-        this.webSocketBot.sendMessageToClient(client, {type: 'map', text:message.text, username:message.username, points:message.points, url:message.url});
+    sendMessageToClient(client, message) {
+        this.webSocketBot.sendMessageToClient(client, {type: 'msg', text:message.text, username:message.username, points:message.points, url:message.url, searches:message.searches});
     }
 
     sendOutputMessageToUserId(userId, message) {
         if (this.webSocketClientsByUserId[userId]) {
-            if (message.points) {
-                this.sendMapMessageToClient(this.webSocketClientsByUserId[userId], message);
-            }
-            else {
-                this.sendTextMessageToClient(this.webSocketClientsByUserId[userId], message);
-            }
+            this.sendMessageToClient(this.webSocketClientsByUserId[userId], message);
         }
     }
 
@@ -317,6 +301,12 @@ class EventBot {
                 else if (action == 'search_music_artist') {
                     return this.handleSearchMusicArtistMessage(state, response, message);
                 }
+                else if (action == 'search_film_topic') {
+                    return this.handleSearchFilmTopicMessage(state, response, message);
+                }
+                else if (action == 'search_film_cast') {
+                    return this.handleSearchFilmCastMessage(state, response, message);
+                }
                 else if (action == 'text') {
                     return this.handleTextMessage(state, response, message);
                 }
@@ -397,7 +387,7 @@ class EventBot {
     handleRecentSearches(state, response, message) {
         this.logDialog(state, "recent_searches", message, false);
         state.conversationContext['recent_no_results'] = false;
-        return this.dialogStore.getRecentSearchesForUserId(state.userId, 5)
+        return this.dialogStore.getRecentSearchesForUserId(state.userId, this.searchResultCount)
             .then((searches) => {
                 if (! searches || searches.length == 0) {
                     const reply = {
@@ -412,15 +402,16 @@ class EventBot {
                         text: 'Here is a list of your recent searches:\n',
                         searches: []
                     };
-                    reply.text += '<ul>';
                     let i = 0;
                     for (const search of searches) {
+                        if (i > 0) {
+                            reply.text += '\n';
+                        }
                         i++;
-                        reply.text += '<li>' + i + '. ' + search.type + ': ' + search.message + '</li>';
+                        reply.text += i + '. ' + search.typeFriendly + ': ' + search.message;
                         reply.searches.push(search);
                     }
-                    reply.text += '</ul>';
-                    state.recentSearches = reply.searches
+                    state.recentSearches = reply.searches;
                     return Promise.resolve(reply);
                 }
             });
@@ -440,6 +431,18 @@ class EventBot {
             else if (state.recentSearches[index].type == 'suggest') {
                 return this.handleSearchSuggestionMessage(state, response, state.recentSearches[index].message);
             }
+            else if (state.recentSearches[index].type == 'music_topic') {
+                return this.handleSearchMusicTopicMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'music_artist') {
+                return this.handleSearchMusicArtistMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'film_topic') {
+                return this.handleSearchFilmTopicMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'film_cast') {
+                return this.handleSearchFilmCastMessage(state, response, state.recentSearches[index].message);
+            }
         }
         // if we got here it was an invalid selection
         const reply = {
@@ -454,7 +457,7 @@ class EventBot {
         this.logDialog(state, "search_topic", message, false);
         state.conversationContext['search_no_results'] = false;
         let topic = message;
-        return this.eventStore.findEventsByTopic(topic, 5)
+        return this.eventStore.findEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -474,24 +477,24 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here is a list of events happening today:</b><br/>',
+                        text: 'Here is a list of events happening today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of events) {
-                        reply.text += '<li>' + event.name + '</li>';
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -502,7 +505,7 @@ class EventBot {
         this.logDialog(state, "search_speaker", message, false);
         state.conversationContext['search_no_results'] = false;
         let speaker = message;
-        return this.eventStore.findEventsBySpeaker(speaker, 5)
+        return this.eventStore.findEventsBySpeaker(speaker, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -522,24 +525,24 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here are events featuring this speaker today:</b><br/>',
+                        text: 'Here are events featuring this speaker today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -549,7 +552,7 @@ class EventBot {
     handleSearchSuggestionMessage(state, response, message) {
         this.logDialog(state, "search_suggestion", message, false);
         state.conversationContext['search_no_results'] = false;
-        return this.eventStore.findSuggestedEvents(5)
+        return this.eventStore.findSuggestedEvents(this.suggestedSearchTerms, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -573,20 +576,20 @@ class EventBot {
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of events) {
-                        reply.text += '<li>' + event.name + '</li>';
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -597,7 +600,7 @@ class EventBot {
         this.logDialog(state, "search_music_topic", message, false);
         state.conversationContext['search_no_results'] = false;
         let topic = message;
-        return this.eventStore.findMusicEventsByTopic(topic, 5)
+        return this.eventStore.findMusicEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -617,24 +620,24 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here are some matching music events today:</b><br/>',
+                        text: 'Here are some matching music events today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -645,7 +648,7 @@ class EventBot {
         this.logDialog(state, "search_music_artist", message, false);
         state.conversationContext['search_no_results'] = false;
         let artist = message;
-        return this.eventStore.findMusicEventsByArtist(artist, 5)
+        return this.eventStore.findMusicEventsByArtist(artist, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 let filteredEvents = [];
                 if (events) {
@@ -665,24 +668,120 @@ class EventBot {
                 }
                 else {
                     let reply = {
-                        text: '<b>Here are events featuring this artist today:</b><br/>',
+                        text: 'Here are events featuring this artist today:\n',
                         url: this.baseUrl + '/eventList?ids=',
                         points: []
                     };
-                    reply.text += '<ul>';
                     let first = true;
                     for (const event of filteredEvents) {
-                        reply.text += '<li>' + event.name + '</li>';
+                        event.name = this.decodeHtmlSpecialChars(event.name);
                         if (first) {
                             first = false;
                         }
                         else {
+                            reply.text += '\n';
                             reply.url += '%2C';
                         }
+                        reply.text += event.name;
                         reply.url += event._id;
                         reply.points.push(event);
                     }
-                    reply.text += '</ul>';
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchFilmTopicMessage(state, response, message) {
+        this.logDialog(state, "search_film_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findFilmEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: 'Here are some matching film events:\n',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.text += '\n';
+                            reply.url += '%2C';
+                        }
+                        reply.text += event.name;
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
+                    state.lastSearchResults = reply.points;
+                    return Promise.resolve(reply);
+                }
+            });
+    }
+
+    handleSearchFilmCastMessage(state, response, message) {
+        this.logDialog(state, "search_film_cast", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let cast = message;
+        return this.eventStore.findFilmEventsByCast(cast, this.searchTimeHours, this.searchResultCount)
+            .then((events) => {
+                let filteredEvents = [];
+                if (events) {
+                    for (const event of events) {
+                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                            filteredEvents.push(event);
+                        }
+                    }
+                }
+                if (filteredEvents.length == 0) {
+                    const reply = {
+                        moveToNextDialog: true,
+                        nextDialogInputText: null,
+                        nextDialogContextVars: {search_no_results: true}
+                    };
+                    return Promise.resolve(reply);
+                }
+                else {
+                    let reply = {
+                        text: 'Here are some matching film events:\n',
+                        url: this.baseUrl + '/eventList?ids=',
+                        points: []
+                    };
+                    let first = true;
+                    for (const event of filteredEvents) {
+                        event.name = this.decodeHtmlSpecialChars(event.name);
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            reply.text += '\n';
+                            reply.url += '%2C';
+                        }
+                        reply.text += event.name;
+                        reply.url += event._id;
+                        reply.points.push(event);
+                    }
                     state.lastSearchResults = reply.points;
                     return Promise.resolve(reply);
                 }
@@ -692,29 +791,48 @@ class EventBot {
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
-        let body = this.baseUrl + '/eventList';
-        if (state.lastSearchResults && state.lastSearchResults.length > 0) {
-            body += '?ids=';
-            let first = true;
-            for(const point of state.lastSearchResults) {
-                if (first) {
-                    first = false;
+        return this.userStore.getUserForId(phoneNumber)
+            .then((userDoc) => {
+                let url = this.baseUrl + '/eventList';
+                if (userDoc && userDoc.token) {
+                    url += '?token=';
+                    url += encodeURIComponent(userDoc.token);
+                    url += '&';
                 }
                 else {
-                    body += '%2C';
+                    url += '?';
+                    url += '?';
                 }
-                body += point._id;
-            }
-        }
-        console.log(`Sending ${body} to ${phoneNumber}...`);
-        return this.sendTextMessage(phoneNumber, body)
-            .then(() => {
-                let reply = '';
-                for (let i = 0; i < response.output['text'].length; i++) {
-                    reply += response.output['text'][i] + '\n';
+                if (state.lastSearchResults && state.lastSearchResults.length > 0) {
+                    url += 'ids=';
+                    let first = true;
+                    for(const point of state.lastSearchResults) {
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            url += '%2C';
+                        }
+                        url += point._id;
+                    }
                 }
-                return Promise.resolve(reply);
+                return this.bitly.shorten(url)
+                    .then((bitlyResponse) => {
+                        let body = 'Go here to view your events: ';
+                        body += bitlyResponse.data.url;
+                        console.log(`Sending ${body} to ${phoneNumber}...`);
+                        return this.sendTextMessage(phoneNumber, body)
+                            .then(() => {
+                                let reply = '';
+                                for (let i = 0; i < response.output['text'].length; i++) {
+                                    reply += response.output['text'][i] + '\n';
+                                }
+                                return Promise.resolve(reply);
+                            });
+                    });
+                
             });
+
     }
 
     formatPhoneNumber(phoneNumber) {
@@ -794,6 +912,25 @@ class EventBot {
         if (state) {
             this.clearUserState(state);
         }
+    }
+
+    decodeHtmlSpecialChars(text) {
+        var entities = [
+            ['amp', '&'],
+            ['apos', '\''],
+            ['#x27', '\''],
+            ['#x2F', '/'],
+            ['#39', '\''],
+            ['#47', '/'],
+            ['lt', '<'],
+            ['gt', '>'],
+            ['nbsp', ' '],
+            ['quot', '"']
+        ];
+        for (var i=0; i<entities.length; i++) {
+            text = text.replace(new RegExp('&' + entities[i][0] + ';', 'g'), entities[i][1]);
+        }
+        return text;
     }
 }
 

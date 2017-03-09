@@ -14,11 +14,13 @@ var app = new Vue({
         webSocketPingTimer: null,
         message: '',
         messages: [],
-        startMessageSent: false
+        startMessageSent: false,
+        mobile: false,
+        mapLoaded: false
     },
     methods: {
         submitMessage: function() {
-            app.messages.push({
+            var message = {
                 user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                 ts: new Date(),
                 key: new Date().getTime() + '',
@@ -35,6 +37,15 @@ var app = new Vue({
                 msgStyle: {
                     'overflow': 'auto'
                 }
+            };
+            if (app.mobile) {
+                app.messages.unshift(message);
+            }
+            else {
+                app.messages.push(message);
+            }
+            Vue.nextTick(function() { // scroll messages to bottom of window
+                document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
             });
             app.sendMessage(app.message, false);
             app.message = '';
@@ -44,29 +55,46 @@ var app = new Vue({
                 token: token,
                 type: 'msg',
                 text: text,
+                mobile: app.mobile,
                 startOver: startOver
             }));
         },
         init() {
-            // init mapbox
-            mapboxgl.accessToken = mapboxAccessToken;
-            var bounds = [
+            app.mobile = window.matchMedia('(max-width: 960px)').matches;
+            if (! app.mobile) {
+                app.initMap(function() {
+                    setTimeout(app.onTimer, 1);
+                });
+            }
+            else {
+                setTimeout(app.onTimer, 1);
+            }
+        },
+        initMap(onMapLoaded) {
+            if (app.mapLoaded) {
+                if (onMapLoaded) {
+                    return onMapLoaded();
+                }
+                else {
+                    return;
+                }
+            }
+            else {
+                app.mapLoaded = true;
+                mapboxgl.accessToken = mapboxAccessToken;
+                var bounds = [
                     [-98, 29],
                     [-97, 31]
-                ] // Austin city bounds
-
-            map = new mapboxgl.Map({
-                container: "map",
-                style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
-                center: [-97.74306, 30.26715],
-                zoom: 12,
-                pitch: 30
-            });
-
-            map.on('load', function() {
-                setTimeout(app.onTimer, 1);
-            })
-
+                ]; // Austin city bounds
+                map = new mapboxgl.Map({
+                    container: "map",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1?fresh=true",
+                    center: [-97.74306, 30.26715],
+                    zoom: 14,
+                    pitch: 30
+                });
+                map.on('load', onMapLoaded);
+            }
         },
         onTimer() {
             if (!app.webSocketConnected) {
@@ -78,7 +106,8 @@ var app = new Vue({
                     }
                 }
                 app.connect();
-            } else {
+            }
+            else {
                 app.webSocket.send(JSON.stringify({
                     token: token,
                     type: 'ping'
@@ -101,27 +130,34 @@ var app = new Vue({
                 app.webSocket.onmessage = function(evt) {
                     app.webSocketConnected = true;
                     var data = JSON.parse(evt.data);
-                    if (data.type == 'msg' || data.type == 'map') {
+                    if (data.type == 'msg') {
                         console.log('Message received: ' + evt.data);
-                        app.messages.push({
+                        var message = {
                             user: botUsername,
                             ts: new Date(),
                             key: new Date().getTime() + '',
                             data: data,
                             isUser: false,
-                            userStyle: {
-
-                            },
+                            userStyle: {},
                             msgStyle: {}
-                        });
-                        Vue.nextTick(() => { // scroll down
+                        };
+                        if (app.mobile) {
+                            app.messages.unshift(message);
+                        }
+                        else {
+                            app.messages.push(message);
+                        }
+                        Vue.nextTick(function() { // scroll messages to bottom of window
                             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                         });
-                        if (data.type == 'map') {
-                            app.updateMap(data);
+                        if (data.points) {
+                            mapToggle(function() {
+                                app.updateMap(data);
+                            });
                         }
-                    } else if (data.type == 'input') {
-                        app.messages.push({
+                    }
+                    else if (data.type == 'input') {
+                        var message = {
                             user: '<img class="anon_avatar" src="img/Ic_insert_emoticon_48px.png">',
                             ts: new Date(),
                             key: new Date().getTime() + '',
@@ -135,10 +171,19 @@ var app = new Vue({
                                 'padding-right': '0px',
                                 'width': '28px'
                             },
-                            msgStyle: {}
-                        });
+                            msgStyle: {
+                                'overflow': 'auto'
+                            }
+                        };
+                        if (app.mobile) {
+                            app.messages.unshift(message);
+                        }
+                        else {
+                            app.messages.push(message);
+                        }
                         app.message = '';
-                    } else if (data.type == 'ping') {
+                    }
+                    else if (data.type == 'ping') {
                         // console.log('Received ping.');
                     }
                 };
@@ -151,7 +196,12 @@ var app = new Vue({
                 alert("WebSocket not supported browser.");
             }
         },
+        runRecentSearch(index) {
+            app.message = index + '';
+            app.submitMessage();
+        },
         updateMap(data) {
+            if (popup.isOpen()) popup.remove();
             var geoj = {
                 type: "FeatureCollection"
             };
@@ -203,7 +253,7 @@ var app = new Vue({
                 map.addSource('locations', {
                     "type": "geojson",
                     "data": geoj,
-                    "cluster": true,
+                    "cluster": false,
                     "clusterMaxZoom": 20,
                     "clusterRadius": 5
                 });
@@ -212,7 +262,6 @@ var app = new Vue({
             }
 
             if (!map.getLayer('eventsLayer')) {
-
                 map.addLayer({
                     "id": "eventsLayer",
                     "type": "symbol",
@@ -220,27 +269,9 @@ var app = new Vue({
                     "layout": {
                         "icon-image": "doc-icon",
                         "icon-size": {
-                            "stops": [ [7, 0.3], [15, 0.6] ]
+                            "stops": [ [7, 0.4], [15, 0.6] ]
                         },
                         "icon-allow-overlap": true
-                    }
-                }, 'events-label');
-            }
-
-            if (!map.getLayer('events-cluster')) {
-                map.addLayer({
-                    "id": "events-cluster",
-                    "type": "symbol",
-                    "source": "locations",
-                    "layout": {
-                        "text-field": "{point_count}",
-                        "text-font": [
-                            "DIN Offc Pro Medium",
-                            "Arial Unicode MS Bold"
-                        ],
-                        "text-size": 14,
-                        "text-offset": [0,-2],
-                        "text-allow-overlap": true
                     }
                 }, 'events-label');
             }
@@ -264,41 +295,58 @@ var app = new Vue({
                 var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                     layers: ["eventsLayer"]
                 });
-
-                map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
-                if (!fs.length) {
-                    popup.remove();
-                    return;
-                };
-
-                // console.log(fs);
-
-                if (fs.length > 1) {
-                    popuphtml = "";
-                    fs.forEach(function(f) {
-                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
-                        popuphtml += "<div class='popup-title'>" + titl + "</div>";
-                        if (f.properties.description) {
-                            var desc = f.properties.description;
-                            if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
-                            popuphtml += "<p>" + desc + "</p>";
-                        }
-
-                    }, this);
-                    popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
-                } else {
-                    var f = fs[0];
-                    if (!f.properties.cluster) {
-                        titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
-                        popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                app.displayPopup(fs);
+            });
+        },
+        displayPopup(fs) {
+            map.getCanvas().style.cursor = (fs.length) ? "pointer" : "";
+            if (!fs.length) {
+                popup.remove();
+                return;
+            };
+            if (fs.length > 1) {
+                popuphtml = "";
+                fs.forEach(function(f) {
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>"
+                    popuphtml += "<div class='popup-title'>" + titl + "</div>";
+                    if (f.properties.description) {
                         var desc = f.properties.description;
-                        if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
-                        if (f.properties.img_url && f.properties.img_url != 'undefined')
-                            popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
-                        popuphtml += desc + "</div>";
-                        popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                        if (desc.length > 50) desc = f.properties.description.substring(0, 50) + "...";
+                        popuphtml += "<p>" + desc + "</p>";
+                    }
+
+                }, this);
+                popup.setLngLat(fs[0].geometry.coordinates).setHTML(popuphtml).addTo(map);
+            } else {
+                var f = fs[0];
+                if (!f.properties.cluster) {
+                    titl = "<a href='http://schedule.sxsw.com/2017/events/" + f.properties._id.toUpperCase() + "' target='_sxswsessiondesc'>" + f.properties.name + "</a>";
+                    popuphtml = "<div class='popup-title'>" + titl + "</div><div>";
+                    var desc = f.properties.description;
+                    if (desc.length > 370) desc = f.properties.description.substring(0, 370) + "...";
+                    if (f.properties.img_url && f.properties.img_url != 'undefined')
+                        popuphtml += "<img class='popup-image' src='" + f.properties.img_url + "'>";
+                    popuphtml += desc + "</div>";
+                    popup.setLngLat(f.geometry.coordinates).setHTML(popuphtml).addTo(map);
+                }
+            }
+        },
+        openPopup(event) {
+            mapToggle(function() {
+                map.panTo(event.geometry.coordinates);
+                var features = [];
+                try {
+                    var allFeatures = map.getSource('locations')._data.features;
+                    for (var i = 0; i < allFeatures.length; i++) {
+                        if (allFeatures[i].properties._id == event._id) {
+                            features.push(allFeatures[i]);
+                        }
                     }
                 }
+                catch (err) {
+                    console.log(err);
+                }
+                app.displayPopup(features);
             });
         }
     }
@@ -309,13 +357,8 @@ var app = new Vue({
     app.init();
 })();
 
-Vue.component('chat-message', {
-    props: ['msg'],
-    render: function(createElement) {
-        return createElement('div', {
-            domProps: {
-                innerHTML: this.msg.data.text
-            }
-        });
-    }
-});
+function mapToggle(onMapLoad) {
+    $('#message').blur();
+    $('#map, #app, .mapchat-btn').toggleClass('mobile-hide mobile-show');
+    app.initMap(onMapLoad);
+}
