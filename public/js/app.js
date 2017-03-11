@@ -100,12 +100,15 @@ var app = new Vue({
                     timeout: 5000,
                     maximumAge: 0
                 };
-
-
                 navigator.geolocation.getCurrentPosition(locateSuccess, locateError, geoloptions);
 
                 map.addControl(new mapboxgl.NavigationControl(), 'top-left');
-                map.on('load', onMapLoaded);
+
+                map.on('load', function() {
+                    if (onMapLoaded) {
+                        onMapLoaded();
+                    }
+                });
             }
         },
         onTimer() {
