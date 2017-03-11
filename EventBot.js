@@ -286,11 +286,14 @@ class EventBot {
                 else if (action == 'recent_search_selected') {
                     return this.handleRecentSearchSelected(state, response, message);
                 }
+                else if (action == 'search_free_form') {
+                    return this.handleSearchFreeFormMessage(state, response, message);
+                }
                 else if (action == 'search_topic') {
-                    return this.handleSearchTopicMessage(state, response, message);
+                    return this.handleSearchInteractiveTopicMessage(state, response, message);
                 }
                 else if (action == 'search_speaker') {
-                    return this.handleSearchSpeakerMessage(state, response, message);
+                    return this.handleSearchInteractiveSpeakerMessage(state, response, message);
                 }
                 else if (action == 'search_suggestion') {
                     return this.handleSearchSuggestionMessage(state, response, message);
@@ -422,11 +425,14 @@ class EventBot {
         let index = response.entities[0].value;
         index--;
         if (state.recentSearches && state.recentSearches.length > 0 && index < state.recentSearches.length) {
-            if (state.recentSearches[index].type == 'topic') {
-                return this.handleSearchTopicMessage(state, response, state.recentSearches[index].message);
+            if (state.recentSearches[index].type == 'free_form') {
+                return this.handleSearchFreeFormMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'topic') {
+                return this.handleSearchInteractiveTopicMessage(state, response, state.recentSearches[index].message);
             }
             else if (state.recentSearches[index].type == 'speaker') {
-                return this.handleSearchSpeakerMessage(state, response, state.recentSearches[index].message);
+                return this.handleSearchInteractiveSpeakerMessage(state, response, state.recentSearches[index].message);
             }
             else if (state.recentSearches[index].type == 'suggest') {
                 return this.handleSearchSuggestionMessage(state, response, state.recentSearches[index].message);
@@ -453,99 +459,33 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleSearchTopicMessage(state, response, message) {
-        this.logDialog(state, "search_topic", message, false);
+    handleSearchFreeFormMessage(state, response, message) {
+        this.logDialog(state, "search_free_form", message, false);
         state.conversationContext['search_no_results'] = false;
-        let topic = message;
-        return this.eventStore.findEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
+        let keyword = message;
+        return this.eventStore.findAllEventsByKeyword(keyword, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: 'Here is a list of events happening today:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of events) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
-                }
+                return this.filterAndReturnEvents(state, events);
             });
     }
 
-    handleSearchSpeakerMessage(state, response, message) {
+    handleSearchInteractiveTopicMessage(state, response, message) {
+        this.logDialog(state, "search_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findInteractiveEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
+            .then((events) => {
+                return this.filterAndReturnEvents(state, events);
+            });
+    }
+
+    handleSearchInteractiveSpeakerMessage(state, response, message) {
         this.logDialog(state, "search_speaker", message, false);
         state.conversationContext['search_no_results'] = false;
         let speaker = message;
-        return this.eventStore.findEventsBySpeaker(speaker, this.searchTimeHours, this.searchResultCount)
+        return this.eventStore.findInteractiveEventsBySpeaker(speaker, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: 'Here are events featuring this speaker today:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of filteredEvents) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
-                }
+                return this.filterAndReturnEvents(state, events);
             });
     }
 
@@ -554,45 +494,7 @@ class EventBot {
         state.conversationContext['search_no_results'] = false;
         return this.eventStore.findSuggestedEvents(this.suggestedSearchTerms, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: 'Here is a list of event suggestions for today:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of events) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
-                }
+                return this.filterAndReturnEvents(state, events);
             });
     }
 
@@ -602,45 +504,7 @@ class EventBot {
         let topic = message;
         return this.eventStore.findMusicEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: 'Here are some matching music events today:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of filteredEvents) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
-                }
+                return this.filterAndReturnEvents(state, events);
             });
     }
 
@@ -650,45 +514,7 @@ class EventBot {
         let artist = message;
         return this.eventStore.findMusicEventsByArtist(artist, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: 'Here are events featuring this artist today:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of filteredEvents) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
-                }
+                return this.filterAndReturnEvents(state, events);
             });
     }
 
@@ -698,45 +524,7 @@ class EventBot {
         let topic = message;
         return this.eventStore.findFilmEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
-                }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
-                }
-                else {
-                    let reply = {
-                        text: 'Here are some matching film events:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of filteredEvents) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
-                }
+                return this.filterAndReturnEvents(state, events);
             });
     }
 
@@ -746,91 +534,100 @@ class EventBot {
         let cast = message;
         return this.eventStore.findFilmEventsByCast(cast, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
-                let filteredEvents = [];
-                if (events) {
-                    for (const event of events) {
-                        if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
-                            filteredEvents.push(event);
-                        }
-                    }
+                return this.filterAndReturnEvents(state, events);
+            });
+    }
+
+    filterAndReturnEvents(state, events) {
+        let filteredEvents = [];
+        if (events) {
+            for (const event of events) {
+                if (event.geometry && event.geometry.coordinates && event.geometry.coordinates.length == 2) {
+                    filteredEvents.push(event);
                 }
-                if (filteredEvents.length == 0) {
-                    const reply = {
-                        moveToNextDialog: true,
-                        nextDialogInputText: null,
-                        nextDialogContextVars: {search_no_results: true}
-                    };
-                    return Promise.resolve(reply);
+            }
+        }
+        if (filteredEvents.length == 0) {
+            const reply = {
+                moveToNextDialog: true,
+                nextDialogInputText: null,
+                nextDialogContextVars: {search_no_results: true}
+            };
+            return Promise.resolve(reply);
+        }
+        else {
+            let reply = {
+                text: 'OK, I found these events:\n',
+                url: this.baseUrl + '/eventList?ids=',
+                points: []
+            };
+            let first = true;
+            for (const event of filteredEvents) {
+                event.name = this.decodeHtmlSpecialChars(event.name);
+                if (first) {
+                    first = false;
                 }
                 else {
-                    let reply = {
-                        text: 'Here are some matching film events:\n',
-                        url: this.baseUrl + '/eventList?ids=',
-                        points: []
-                    };
-                    let first = true;
-                    for (const event of filteredEvents) {
-                        event.name = this.decodeHtmlSpecialChars(event.name);
-                        if (first) {
-                            first = false;
-                        }
-                        else {
-                            reply.text += '\n';
-                            reply.url += '%2C';
-                        }
-                        reply.text += event.name;
-                        reply.url += event._id;
-                        reply.points.push(event);
-                    }
-                    state.lastSearchResults = reply.points;
-                    return Promise.resolve(reply);
+                    reply.text += '\n';
+                    reply.url += '%2C';
                 }
-            });
+                reply.text += event.name;
+                reply.url += event._id;
+                reply.points.push(event);
+            }
+            state.lastSearchResults = reply.points;
+            return this.getBitlyLinkWithToken(state.userId, reply.url)
+                .then((url) => {
+                    reply.url = url;
+                    return Promise.resolve(reply);
+                });
+        }
     }
 
     handleTextMessage(state, response, message) {
         this.logDialog(state, "text", message, false);
         let phoneNumber = this.formatPhoneNumber(message);
-        return this.userStore.getUserForId(phoneNumber)
-            .then((userDoc) => {
-                let url = this.baseUrl + '/eventList';
-                if (userDoc && userDoc.token) {
-                    url += '?token=';
-                    url += encodeURIComponent(userDoc.token);
-                    url += '&';
+        let url = this.baseUrl + '/eventList?';
+        if (state.lastSearchResults && state.lastSearchResults.length > 0) {
+            url += 'ids=';
+            let first = true;
+            for(const point of state.lastSearchResults) {
+                if (first) {
+                    first = false;
                 }
                 else {
-                    url += '?';
-                    url += '?';
+                    url += '%2C';
                 }
-                if (state.lastSearchResults && state.lastSearchResults.length > 0) {
-                    url += 'ids=';
-                    let first = true;
-                    for(const point of state.lastSearchResults) {
-                        if (first) {
-                            first = false;
+                url += point._id;
+            }
+        }
+        return this.getBitlyLinkWithToken(phoneNumber, url)
+            .then((url) => {
+                let body = 'Go here to view your events: ';
+                body += url;
+                console.log(`Sending ${body} to ${phoneNumber}...`);
+                return this.sendTextMessage(phoneNumber, body)
+                    .then(() => {
+                        let reply = '';
+                        for (let i = 0; i < response.output['text'].length; i++) {
+                            reply += response.output['text'][i] + '\n';
                         }
-                        else {
-                            url += '%2C';
-                        }
-                        url += point._id;
-                    }
+                        return Promise.resolve(reply);
+                    });
+            });
+    }
+
+    getBitlyLinkWithToken(phoneNumber, url) {
+        return this.userStore.getUserForId(phoneNumber)
+            .then((userDoc) => {
+                if (userDoc && userDoc.token) {
+                    url += '&token=';
+                    url += encodeURIComponent(userDoc.token);
                 }
                 return this.bitly.shorten(url)
                     .then((bitlyResponse) => {
-                        let body = 'Go here to view your events: ';
-                        body += bitlyResponse.data.url;
-                        console.log(`Sending ${body} to ${phoneNumber}...`);
-                        return this.sendTextMessage(phoneNumber, body)
-                            .then(() => {
-                                let reply = '';
-                                for (let i = 0; i < response.output['text'].length; i++) {
-                                    reply += response.output['text'][i] + '\n';
-                                }
-                                return Promise.resolve(reply);
-                            });
+                        return Promise.resolve(bitlyResponse.data.url);
                     });
-                
             });
 
     }
