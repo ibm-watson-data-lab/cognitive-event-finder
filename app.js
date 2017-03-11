@@ -107,7 +107,7 @@ app.get('/sms', (req, res) => {
             }
             if (reply.points) {
                 // send
-                let body = 'Tap here to see some matching events: ' + reply.url;
+                let body = 'OK, tap here to see some matching events: ' + reply.url;
                 res.send(body);
             }
             else if (reply.searches) {
