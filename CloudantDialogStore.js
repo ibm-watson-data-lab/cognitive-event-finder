@@ -102,7 +102,10 @@ class CloudantDialogStore {
                                 continue;
                             }
                             let search = null;
-                            if (dialog.name == 'search_topic') {
+                            if (dialog.name == 'search_free_form') {
+                                search = {type: 'free_form', typeFriendly: 'Text', message: dialog.message};
+                            }
+                            else if (dialog.name == 'search_topic') {
                                 search = {type: 'topic', typeFriendly: 'Topic', message: dialog.message};
                             }
                             else if (dialog.name == 'search_speaker') {

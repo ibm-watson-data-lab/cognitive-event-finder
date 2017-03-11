@@ -286,11 +286,14 @@ class EventBot {
                 else if (action == 'recent_search_selected') {
                     return this.handleRecentSearchSelected(state, response, message);
                 }
+                else if (action == 'search_free_form') {
+                    return this.handleSearchFreeFormMessage(state, response, message);
+                }
                 else if (action == 'search_topic') {
-                    return this.handleSearchTopicMessage(state, response, message);
+                    return this.handleSearchInteractiveTopicMessage(state, response, message);
                 }
                 else if (action == 'search_speaker') {
-                    return this.handleSearchSpeakerMessage(state, response, message);
+                    return this.handleSearchInteractiveSpeakerMessage(state, response, message);
                 }
                 else if (action == 'search_suggestion') {
                     return this.handleSearchSuggestionMessage(state, response, message);
@@ -422,11 +425,14 @@ class EventBot {
         let index = response.entities[0].value;
         index--;
         if (state.recentSearches && state.recentSearches.length > 0 && index < state.recentSearches.length) {
-            if (state.recentSearches[index].type == 'topic') {
-                return this.handleSearchTopicMessage(state, response, state.recentSearches[index].message);
+            if (state.recentSearches[index].type == 'free_form') {
+                return this.handleSearchFreeFormMessage(state, response, state.recentSearches[index].message);
+            }
+            else if (state.recentSearches[index].type == 'topic') {
+                return this.handleSearchInteractiveTopicMessage(state, response, state.recentSearches[index].message);
             }
             else if (state.recentSearches[index].type == 'speaker') {
-                return this.handleSearchSpeakerMessage(state, response, state.recentSearches[index].message);
+                return this.handleSearchInteractiveSpeakerMessage(state, response, state.recentSearches[index].message);
             }
             else if (state.recentSearches[index].type == 'suggest') {
                 return this.handleSearchSuggestionMessage(state, response, state.recentSearches[index].message);
@@ -453,21 +459,31 @@ class EventBot {
         return Promise.resolve(reply);
     }
 
-    handleSearchTopicMessage(state, response, message) {
-        this.logDialog(state, "search_topic", message, false);
+    handleSearchFreeFormMessage(state, response, message) {
+        this.logDialog(state, "search_free_form", message, false);
         state.conversationContext['search_no_results'] = false;
-        let topic = message;
-        return this.eventStore.findEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
+        let keyword = message;
+        return this.eventStore.findAllEventsByKeyword(keyword, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 return this.filterAndReturnEvents(state, events);
             });
     }
 
-    handleSearchSpeakerMessage(state, response, message) {
+    handleSearchInteractiveTopicMessage(state, response, message) {
+        this.logDialog(state, "search_topic", message, false);
+        state.conversationContext['search_no_results'] = false;
+        let topic = message;
+        return this.eventStore.findInteractiveEventsByTopic(topic, this.searchTimeHours, this.searchResultCount)
+            .then((events) => {
+                return this.filterAndReturnEvents(state, events);
+            });
+    }
+
+    handleSearchInteractiveSpeakerMessage(state, response, message) {
         this.logDialog(state, "search_speaker", message, false);
         state.conversationContext['search_no_results'] = false;
         let speaker = message;
-        return this.eventStore.findEventsBySpeaker(speaker, this.searchTimeHours, this.searchResultCount)
+        return this.eventStore.findInteractiveEventsBySpeaker(speaker, this.searchTimeHours, this.searchResultCount)
             .then((events) => {
                 return this.filterAndReturnEvents(state, events);
             });

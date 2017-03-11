@@ -33,6 +33,9 @@ class CloudantEventStore {
                     let designDoc = {
                         _id: '_design/search',
                         indexes: {
+                            by_keyword: {
+                                index: 'function (doc) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 5}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 7}); \n} \n} \nif (doc.speakers && doc.speakers.length && doc.speakers.length > 0) { \nfor (var i=0; i<doc.speakers.length; i++) { \nindex("artist", doc.speakers[i].name, {boost: 3}); \n} \n} \nif (doc.genre) { \nindex("genre", doc.genre, {boost: 3}); \n} \nif (doc.cast) { \nvar actors = doc.cast.split(","); for (var i=0; i<actors.length; i++) { \nindex("cast", actors[i], {boost: 3}); \n} \n} \n}'
+                            },
                             by_topic: {
                                 index: 'function (doc) { \nif (! doc.music && ! doc.film) { \nif (doc.time_start) { \nindex("date", Date.parse(doc.time_start), {}); \n} \nif (doc.name) { \nindex("name", doc.name, {boost: 2}); \n} \nif (doc.description) { \nindex("description", doc.description, {boost: 1}); \n} \nif (doc.track) { \nindex("track", doc.track, {boost: 2}); \n} \nif (doc.tags && doc.tags.length && doc.tags.length > 0) { \nfor (var i=0; i<doc.tags.length; i++) { \nindex("tag", doc.tags[i].name, {boost: 10}); \n} \n} \n} \n}'
                             },
@@ -67,7 +70,7 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findEventsByTopic(searchStr, searchTimeHours, count) {
+    findInteractiveEventsByTopic(searchStr, searchTimeHours, count) {
         let query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr}`;
         return this.findEvents('search', 'by_topic', query, searchTimeHours, count);
     }
@@ -78,7 +81,7 @@ class CloudantEventStore {
      * @param count - Max number of events to return
      * @returns {Promise.<TResult>}
      */
-    findEventsBySpeaker(searchStr, searchTimeHours, count) {
+    findInteractiveEventsBySpeaker(searchStr, searchTimeHours, count) {
         return this.findEvents('search', 'by_speaker', `speaker:${searchStr}`, searchTimeHours, count);
     }
 
@@ -142,6 +145,17 @@ class CloudantEventStore {
      */
     findFilmEventsByCast(searchStr, searchTimeHours, count) {
         return this.findEvents('search', 'by_film_cast', `cast:${searchStr}`, searchTimeHours, count);
+    }
+
+    /**
+     * Searches for events based on topic.
+     * @param searchStr - The search string
+     * @param count - Max number of events to return
+     * @returns {Promise.<TResult>}
+     */
+    findAllEventsByKeyword(searchStr, searchTimeHours, count) {
+        let query = `name:${searchStr} OR description:${searchStr} OR track:${searchStr} OR tag:${searchStr} OR speaker:${searchStr} OR genre:${searchStr} OR cast:${searchStr}`;
+        return this.findEvents('search', 'by_keyword', query, searchTimeHours, count);
     }
 
     /**
