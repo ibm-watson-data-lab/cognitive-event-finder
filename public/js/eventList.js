@@ -35,7 +35,21 @@ var app = new Vue({
                     zoom: 14,
                     pitch: 30
                 });
-                map.on('load', onMapLoaded);
+                // device geolocation
+                var geoloptions = {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                };
+                navigator.geolocation.getCurrentPosition(locateSuccess, locateError, geoloptions);
+
+                map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+
+                map.on('load', function() {
+                    if (onMapLoaded) {
+                        onMapLoaded();
+                    }
+                });
             }
         },
         updateMap(points) {
@@ -181,3 +195,34 @@ var app = new Vue({
 function mapToggle() {
     window.location = "/?token=" + token;
 }
+
+function locateSuccess(pos) {
+    var crd = pos.coords;
+    locationPt = {
+        'type': 'Feature',
+        'geometry': {
+            'type': 'Point',
+            'coordinates': [ crd.longitude, crd.latitude]
+        }
+    };
+
+    if (!map.getLayer('locationlayer')) {
+        map.addLayer({
+            "id": "locationlayer",
+            "type": "circle",
+            "source": {
+                "type": "geojson",
+                "data": locationPt,
+            },
+            "paint": {
+                "circle-color": "#FF6600",
+                "circle-radius": 12
+            }
+        }, 'location-label');
+    } else {
+        map.getLayer('locationlayer').setData(locationPt);
+    }
+
+};
+
+function locateError() {}
