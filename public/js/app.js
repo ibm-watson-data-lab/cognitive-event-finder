@@ -101,7 +101,10 @@ var app = new Vue({
                     maximumAge: 0
                 };
 
-                navigator.geolocation.getCurrentPosition(locateSuccess, locateError, geoloptions);
+
+                if (! app.mobile) {
+                    navigator.geolocation.getCurrentPosition(locateSuccess, locateError, geoloptions);
+                }
 
                 map.addControl(new mapboxgl.NavigationControl(), 'top-left');
                 map.on('load', onMapLoaded);
