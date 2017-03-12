@@ -304,9 +304,9 @@ var app = new Vue({
             }
 
             map.on('click', function(e) {
-                let buffer = 3
-                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
-                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
+                let buffer = 3;
+                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer);
+                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer);
                 var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                     layers: ["eventsLayer"]
                 });
@@ -373,7 +373,9 @@ var app = new Vue({
 })();
 
 function mapToggle(onMapLoad) {
-    $('#message').blur();
+    if (app.mobile) {
+        $('#message').blur();
+    }
     $('#map, #app, .mapchat-btn').toggleClass('mobile-hide mobile-show');
     app.initMap(onMapLoad);
 }

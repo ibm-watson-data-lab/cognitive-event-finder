@@ -19,7 +19,12 @@ var app = new Vue({
         },
         initMap(onMapLoaded) {
             if (app.mapLoaded) {
-                return onMapLoaded();
+                if (onMapLoaded) {
+                    return onMapLoaded();
+                }
+                else {
+                    return;
+                }
             }
             else {
                 app.mapLoaded = true;
@@ -30,11 +35,12 @@ var app = new Vue({
                 ]; // Austin city bounds
                 map = new mapboxgl.Map({
                     container: "map",
-                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1?fresh=true",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                     center: [-97.74306, 30.26715],
                     zoom: 14,
                     pitch: 30
                 });
+
                 // device geolocation
                 var geoloptions = {
                     enableHighAccuracy: true,
@@ -140,10 +146,10 @@ var app = new Vue({
                 }
             }
 
-            map.on('click', function (e) {
-                let buffer = 3
-                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
-                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
+            map.on('click', function(e) {
+                let buffer = 3;
+                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer);
+                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer);
                 var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                     layers: ["eventsLayer"]
                 });

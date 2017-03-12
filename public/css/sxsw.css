@@ -40,7 +40,8 @@
 }
 
 .app-banner {
-    /*background-image: url('../img/woodslats_ibm.png');*/
+    background-image: url('../img/ibm_glyph.png');
+    background-repeat: no-repeat;
     background-size: 14%;
     align-self: center;
     background-position: right;
@@ -136,7 +137,7 @@ a {
     position: absolute;
     z-index: 10;
     border-radius: 10px;
-    overflow-y: auto;
+    overflow-y: hidden;
     border: 3px;
 }
 
@@ -258,10 +259,10 @@ a {
 }
 
 #chat-messages {
-    height: 100%;
     position: relative;
+    height: 425px;
     overflow-y: scroll;
-    padding: 0px 10px 44px 10px;
+    padding: 0px 10px 10px 10px;
 }
 
 #chat-form {
