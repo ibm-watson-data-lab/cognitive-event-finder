@@ -40,7 +40,8 @@
 }
 
 .app-banner {
-    /*background-image: url('../img/woodslats_ibm.png');*/
+    background-image: url('../img/ibm_glyph.png');
+    background-repeat: no-repeat;
     background-size: 14%;
     align-self: center;
     background-position: right;
