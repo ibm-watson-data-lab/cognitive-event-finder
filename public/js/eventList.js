@@ -19,7 +19,12 @@ var app = new Vue({
         },
         initMap(onMapLoaded) {
             if (app.mapLoaded) {
-                return onMapLoaded();
+                if (onMapLoaded) {
+                    return onMapLoaded();
+                }
+                else {
+                    return;
+                }
             }
             else {
                 app.mapLoaded = true;
@@ -30,12 +35,27 @@ var app = new Vue({
                 ]; // Austin city bounds
                 map = new mapboxgl.Map({
                     container: "map",
-                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1?fresh=true",
+                    style: "mapbox://styles/rajrsingh/cizhoy8xk000i2socld7of1m1",
                     center: [-97.74306, 30.26715],
                     zoom: 14,
                     pitch: 30
                 });
-                map.on('load', onMapLoaded);
+
+                // device geolocation
+                var geoloptions = {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                };
+                navigator.geolocation.getCurrentPosition(locateSuccess, locateError, geoloptions);
+
+                map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+
+                map.on('load', function() {
+                    if (onMapLoaded) {
+                        onMapLoaded();
+                    }
+                });
             }
         },
         updateMap(points) {
@@ -126,10 +146,10 @@ var app = new Vue({
                 }
             }
 
-            map.on('click', function (e) {
-                let buffer = 3
-                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer)
-                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer)
+            map.on('click', function(e) {
+                let buffer = 3;
+                minpoint = new Array(e.point['x'] - buffer, e.point['y'] - buffer);
+                maxpoint = new Array(e.point['x'] + buffer, e.point['y'] + buffer);
                 var fs = map.queryRenderedFeatures([minpoint, maxpoint], {
                     layers: ["eventsLayer"]
                 });
@@ -181,3 +201,34 @@ var app = new Vue({
 function mapToggle() {
     window.location = "/?token=" + token;
 }
+
+function locateSuccess(pos) {
+    var crd = pos.coords;
+    locationPt = {
+        'type': 'Feature',
+        'geometry': {
+            'type': 'Point',
+            'coordinates': [ crd.longitude, crd.latitude]
+        }
+    };
+
+    if (!map.getLayer('locationlayer')) {
+        map.addLayer({
+            "id": "locationlayer",
+            "type": "circle",
+            "source": {
+                "type": "geojson",
+                "data": locationPt,
+            },
+            "paint": {
+                "circle-color": "#FF6600",
+                "circle-radius": 12
+            }
+        }, 'location-label');
+    } else {
+        map.getLayer('locationlayer').setData(locationPt);
+    }
+
+};
+
+function locateError() {}
