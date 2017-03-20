@@ -44,6 +44,7 @@ DOMAIN=${B_DOMAIN:-$(cat $MANIFEST | grep domain: | awk '{print $2}')}
 # create the GREEN application
 cf push $GREEN -f $MANIFEST -n $GREEN
 # ensure it starts
+sleep 5
 curl --fail -I "https://${GREEN}.${DOMAIN}"
 
 # add the GREEN application to each BLUE route to be load-balanced
