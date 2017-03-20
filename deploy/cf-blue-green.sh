@@ -56,9 +56,11 @@ for url in "${urls[@]}"
 do
    IFS='.' read -r -a urlParts <<< "$url"
    if [ ${#urlParts[@]} = 2 ]; then
-      cf map-route $BLUE $url
+      cf map-route $GREEN $url
+      cf unmap-route $BLUE $url
    else
-      cf map-route $BLUE ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
+      cf map-route $GREEN ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
+      cf unmap-route $BLUE ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
    fi
 done
 
