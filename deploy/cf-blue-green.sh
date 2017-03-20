@@ -49,13 +49,26 @@ curl --fail -I "https://${GREEN}.${DOMAIN}"
 
 # add the GREEN application to each BLUE route to be load-balanced
 # TODO this output parsing seems a bit fragile...find a way to use more structured output
-cf routes | tail -n +4 | grep $BLUE | awk '{print $3" -n "$2}' | xargs -n 3 cf map-route $GREEN
+#cf routes | tail -n +4 | grep "$BLUE$" | awk '{print $3" -n "$2}' | xargs -n 3 cf map-route $GREEN
+urlString=$(cf app $BLUE | grep urls | cut -d':' -f 2)
+IFS=', ' read -r -a urls <<< "$urlString"
+for url in "${urls[@]}"
+do
+   IFS='.' read -r -a urlParts <<< "$url"
+   if [ ${#urlParts[@]} = 2 ]; then
+      echo "cf map-route $BLUE $url"
+   else
+      echo "cf map-route $BLUE ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}"
+   fi
+done
 
 # cleanup
 # TODO consider 'stop'-ing the BLUE instead of deleting it, so that depedencies are cached for next time
-cf delete $BLUE -f
+#cf delete $BLUE -f
+cf stop $BLUE
+cf rename $BLUE "$BLUE-deleted"
 cf rename $GREEN $BLUE
-cf delete-route $DOMAIN -n $GREEN -f
+#cf delete-route $DOMAIN -n $GREEN -f
 finally
 
 echo "DONE"
