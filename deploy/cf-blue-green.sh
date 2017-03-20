@@ -50,9 +50,17 @@ curl --fail -I "https://${GREEN}.${DOMAIN}"
 # add the GREEN application to each BLUE route to be load-balanced
 # TODO this output parsing seems a bit fragile...find a way to use more structured output
 #cf routes | tail -n +4 | grep "$BLUE$" | awk '{print $3" -n "$2}' | xargs -n 3 cf map-route $GREEN
+
+# get GREEN urls to remove later
+urlString=$(cf app $GREEN | grep urls | cut -d':' -f 2)
+IFS=', ' read -r -a greenUrls <<< "$urlString"
+
+# get BLUE urls
+# map GREEN to BLUE
+# unmap BLUE
 urlString=$(cf app $BLUE | grep urls | cut -d':' -f 2)
-IFS=', ' read -r -a urls <<< "$urlString"
-for url in "${urls[@]}"
+IFS=', ' read -r -a blueUrls <<< "$urlString"
+for url in "${blueUrls[@]}"
 do
    IFS='.' read -r -a urlParts <<< "$url"
    if [ ${#urlParts[@]} = 2 ]; then
@@ -61,6 +69,17 @@ do
    else
       cf map-route $GREEN ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
       cf unmap-route $BLUE ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
+   fi
+done
+
+# unmap GREEN routes
+for url in "${greenUrls[@]}"
+do
+   IFS='.' read -r -a urlParts <<< "$url"
+   if [ ${#urlParts[@]} = 2 ]; then
+      cf unmap-route $GREEN $url
+   else
+      cf unmap-route $GREEN ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
    fi
 done
 
