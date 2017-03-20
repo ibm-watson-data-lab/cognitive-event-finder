@@ -78,10 +78,10 @@ do
    IFS='.' read -r -a urlParts <<< "$url"
    if [ ${#urlParts[@]} = 2 ]; then
       cf unmap-route $GREEN $url
-      cf delete-route $url
+      cf delete-route $url -f
    else
       cf unmap-route $GREEN ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
-      cf delete-route ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
+      cf delete-route ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]} -f
    fi
 done
 
