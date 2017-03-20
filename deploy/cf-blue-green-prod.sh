@@ -10,7 +10,7 @@ wget https://s3-us-west-1.amazonaws.com/cf-cli-releases/releases/v6.25.0/cf-cli-
 rm temp.deb
 
 cf api $CF_PROD_API
-cf login --u $CF_PROD_USERNAME --p $CF_PROD_PASSWORD --o $CF_PROD_ORG--s $CF_PROD_SPACE
+cf login -u $CF_PROD_USERNAME -p $CF_PROD_PASSWORD -o $CF_PROD_ORG -s $CF_PROD_SPACE
 
 # Get path to script directory: http://stackoverflow.com/a/4774063
 pushd `dirname $0` > /dev/null

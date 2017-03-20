@@ -10,7 +10,7 @@ wget https://s3-us-west-1.amazonaws.com/cf-cli-releases/releases/v6.25.0/cf-cli-
 rm temp.deb
 
 cf api $CF_STAGING_API
-cf login --u $CF_STAGING_USERNAME --p $CF_STAGING_PASSWORD --o $CF_STAGING_ORG --s $CF_STAGING_SPACE
+cf login -u $CF_STAGING_USERNAME -p $CF_STAGING_PASSWORD -o $CF_STAGING_ORG -s $CF_STAGING_SPACE
 
 # Get path to script directory: http://stackoverflow.com/a/4774063
 pushd `dirname $0` > /dev/null
