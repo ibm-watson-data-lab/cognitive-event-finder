@@ -44,7 +44,7 @@ DOMAIN=${B_DOMAIN:-$(cat $MANIFEST | grep domain: | awk '{print $2}')}
 # create the GREEN application
 cf push $GREEN -f $MANIFEST -n $GREEN
 # ensure it starts
-sleep 5
+sleep 10
 curl --fail -I "https://${GREEN}.${DOMAIN}"
 
 # add the GREEN application to each BLUE route to be load-balanced
@@ -78,8 +78,10 @@ do
    IFS='.' read -r -a urlParts <<< "$url"
    if [ ${#urlParts[@]} = 2 ]; then
       cf unmap-route $GREEN $url
+      cf delete-route $url
    else
       cf unmap-route $GREEN ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
+      cf delete-route ${urlParts[1]}.${urlParts[2]} --hostname ${urlParts[0]}
    fi
 done
 
