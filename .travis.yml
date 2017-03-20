@@ -1,6 +1,7 @@
 language: node_js
 node_js:
 - '6'
+sudo: required
 script: npm test
 before_deploy: npm install -g cf-blue-green
 deploy:
