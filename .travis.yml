@@ -2,8 +2,10 @@ language: node_js
 node_js:
 - '6'
 script: npm test
+before_deploy: npm install -g cf-blue-green
 deploy:
-  - provider: cloudfoundry
+  - provider: script
+    script: cf-blue-green-travis
     api: https://api.ng.bluemix.net
     username:
       secure: "C/ZfSznuGHoh/0195aGtmZjJTwowgg0mV8mfGaZvgeBMjGRPMhidPE3wHkUUcz7fcgsFlvfKk3xq2egi2gLz6tMpxI0zFn/7K3dqtiqaa5AO2X9qFbZty01zudCBkLYM5xdMNnzS0Naz4Q/oL8zjtT9No9dhXkli+Av9GfowBLVpVOz6LMnl1QU9Ut0KKdBAKQJzx15/I9LF+0JK2air4phGRmXrnbHyIUs+bJOCS9wtt2pWNg8on5eWyTEXtQsa3vd0sQrBL1jcnhupUaI+MBe7ChJtCfzo+JU63nN7zCqw2s0JGl2ybh+2X7oeL2cwLCtxRdNx22lTOFp4eNqssrMjcR5M/a9KfkVFi9V3VV4q7L0u3Je1l6NUPp5LuBhTCDleJophLguQVjpkVJewQ81TW0H2yf051LB+4fmgdzvtIZvp4Y+/TnVHx4VrHAYQhOkO8UOBOCCYYT9vDQ50iaENHjRxwtT3k54Ixhl+JqG+hYR1ytHwHhr2Bjwx6Us2bG+iWIufVhtwjdl35ufmoFD7j39Kivbbs29yqyAe3xq3OwmwtVtLRDsCxdJ0MSxwhC8p/iFzrWyPww7ALWmHn400egGI5corCR1/bC/TL47x+wMk8mtrpunIdser34dPfQ4bmDZAqT0AGKl6MFdoRC9sqo24tpTDFl39DL91R/M="
@@ -17,7 +19,8 @@ deploy:
     on:
       repo: ibm-cds-labs/cognitive-event-finder
       branch: dev
-  - provider: cloudfoundry
+  - provider: script
+    script: cf-blue-green-travis
     api: https://api.ng.bluemix.net
     username:
       secure: "C/ZfSznuGHoh/0195aGtmZjJTwowgg0mV8mfGaZvgeBMjGRPMhidPE3wHkUUcz7fcgsFlvfKk3xq2egi2gLz6tMpxI0zFn/7K3dqtiqaa5AO2X9qFbZty01zudCBkLYM5xdMNnzS0Naz4Q/oL8zjtT9No9dhXkli+Av9GfowBLVpVOz6LMnl1QU9Ut0KKdBAKQJzx15/I9LF+0JK2air4phGRmXrnbHyIUs+bJOCS9wtt2pWNg8on5eWyTEXtQsa3vd0sQrBL1jcnhupUaI+MBe7ChJtCfzo+JU63nN7zCqw2s0JGl2ybh+2X7oeL2cwLCtxRdNx22lTOFp4eNqssrMjcR5M/a9KfkVFi9V3VV4q7L0u3Je1l6NUPp5LuBhTCDleJophLguQVjpkVJewQ81TW0H2yf051LB+4fmgdzvtIZvp4Y+/TnVHx4VrHAYQhOkO8UOBOCCYYT9vDQ50iaENHjRxwtT3k54Ixhl+JqG+hYR1ytHwHhr2Bjwx6Us2bG+iWIufVhtwjdl35ufmoFD7j39Kivbbs29yqyAe3xq3OwmwtVtLRDsCxdJ0MSxwhC8p/iFzrWyPww7ALWmHn400egGI5corCR1/bC/TL47x+wMk8mtrpunIdser34dPfQ4bmDZAqT0AGKl6MFdoRC9sqo24tpTDFl39DL91R/M="
