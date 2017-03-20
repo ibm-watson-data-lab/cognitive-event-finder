@@ -2,6 +2,9 @@ language: node_js
 node_js:
 - '6'
 sudo: required
+env:
+  global:
+  - CF_API=https://api.ng.bluemix.net
 script: npm test
 before_deploy: npm install -g cf-blue-green
 deploy:
