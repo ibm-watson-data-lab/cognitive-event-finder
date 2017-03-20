@@ -17,6 +17,6 @@ pushd `dirname $0` > /dev/null
 SCRIPTPATH=`pwd`
 popd > /dev/null
 
-$SCRIPTPATH/cf-blue-green $CF_STAGING_APP
+$SCRIPTPATH/cf-blue-green.sh $CF_STAGING_APP
 
 cf logout
