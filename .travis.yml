@@ -5,7 +5,7 @@ sudo: required
 script: npm test
 env:
   global:
-  - CF_STAGING_DOMAIN=austinrfid.com
+  - CF_STAGING_DOMAIN=mybluemix.net
   - CF_STAGING_APP=cognitive-event-finder
   - CF_STAGING_API=https://api.ng.bluemix.net
   - secure: "Tz1zdrbasAwd5dk8u1j2F5tnH1UlOXnXPKfK6P/oYm++kSyX6mGWtdGCkx5bAe4AwMKd/k5tZW915jBmg3h96+JPZEPxWL/vTAnbhgwrFk7Uw7s99NzDdscsWbkz/k3IkjU737qsR4pkpbCUTduWSSffMaWNpYDZCIRUz5Pft6iscenzefGiijpdZ0Kl+8nXfyxs8MiOr7IDtW8MTWGQoA+5MeslgqQRu+yCiitWGt2mT5WrwIeAfg15cxwvxVziUoXnxErt/l5xpdYS5YSS96UEF3y4PDWm5c7os/v+7uZ6hPjrSeBJ+DWl24pcRC5aQoP6rcicybcz3pMfY2oxhtk4s9EKuKB45tvdE+fR9KXhNr4vp+6hHYHT90F2ZIBRUUT2hFtuXqG1MKpRejvVyWaX2dJcCUa1AzvpcXY/rY5OoHjH+jpuGXdR7m54cW4Zyqh0qJwSp9/Xvoo28Y0SQZ+uRrMxaktJkdJDpa+0s3Y1bCGtTH/VQWY30W78F1kJHRkaHTKeRSbo9A+Npup15RSzuXIBWnblGI6WWwyMzQFYnLV/4qza8oTQBytnr3RJ6EVW5WNSsLBs1p0NLGfc9pHywR6+wkqIFJJYTREz9MZYs8jhLPKJLuUX9011hjMacM1k6hBIPlVi7sDNgi0BsgLVZvX7oUdFKbIS7OEwMxQ="
