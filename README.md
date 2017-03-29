@@ -2,7 +2,7 @@
 
 Cognitive Event Finder is a web-based chatbot for finding events/sessions at conferences.
 It uses Watson Conversation to manage the chat, Cloudant for retrieving events,
-and Mapbox for mapping and finding popular events. 
+and Mapbox for mapping. 
 
 We recently feature the Cognitive Event Finder at SXSW.
 You can see a working version @ https://cognitive-event-finder.mybluemix.net/ where you can search for SXSW events.
@@ -18,12 +18,6 @@ CONVERSATION_PASSWORD=xxxxxxxxxxxx
 CONVERSATION_WORKSPACE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 CLOUDANT_URL=https://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx-bluemix.cloudant.com
 CLOUDANT_DB_NAME=xxxxxxxxxx
-SUGGESTED_SEARCH_TERMS=ibm,map,cognitive,machine learning,data science,analytics
-SEARCH_RESULT_COUNT=5
-SEARCH_TIME_HOURS=8
-MAX_SEARCH_TIME_HOURS=248
-SEARCH_START_TIME=1489154400
-SEARCH_START_TIME_OFFSET_HOURS=0
 ```
 
 We will show you how to configure the necessary services and retrieve these values in the instructions below:
@@ -75,9 +69,9 @@ To create an API token go to https://www.mapbox.com/studio/account/tokens/.
 
 Once you have your API token copy it to your .env file:
 
-    ```
-    MAPBOX_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    ```
+```
+MAPBOX_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
 
 ### Bluemix
 
@@ -171,7 +165,7 @@ Next, create the following databases in Cloudant:
 
 Note: You can specify alternative names for these databases. If you do so be sure to update your .env file.
   
-Finally, we need to populate our `sxswsessions` database. We've made the list of SXSW events available from a public Cloudant database @ https://opendata.cloudant.com/sxswsessions.
+Finally, we need to populate our `sxswsessions` database. We've made the list of SXSW events available @ https://opendata.cloudant.com/sxswsessions.
 
 You can use the replication feature in Cloudant to copy these events into your Cloudant database.
 
@@ -201,7 +195,9 @@ Getting user database...
 Getting dialog database...
 ```
 
-To interact with the bot go to the URL printed in the log.
+To interact with the bot go to the URL printed in the log. Here's a sample conversation:
+
+![Screenshot](screenshots/app1.png?rev=1&raw=true)
 
 ## License
 
