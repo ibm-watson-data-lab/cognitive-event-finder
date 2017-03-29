@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-cf login -a https://api.ng.bluemix.net -u <EMAIL> -o <ORG> -s <SPACE>

@@ -2,24 +2,22 @@
 
 Cognitive Event Finder is a web-based chatbot for finding events/sessions at conferences.
 It uses Watson Conversation to manage the chat, Cloudant for retrieving events,
-and Mapbox for mapping and finding popular events. 
+and Mapbox for mapping. 
 
-This project is a work in progress...
+We recently feature the Cognitive Event Finder at SXSW.
+You can see a working version @ https://cognitive-event-finder.mybluemix.net/ where you can search for SXSW events.
 
 ### Quick Reference
 
 The following environment variables are required to run the application:
 
 ```
+MAPBOX_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 CONVERSATION_USERNAME=xxxxxxx-xxxx-xxxx-xxxxx-xxxxxxxxxxxxx
 CONVERSATION_PASSWORD=xxxxxxxxxxxx
 CONVERSATION_WORKSPACE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 CLOUDANT_URL=https://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx-bluemix.cloudant.com
 CLOUDANT_DB_NAME=xxxxxxxxxx
-MAPBOX_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_ACCOUNT_SID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_PHONE_NUMBER=+15551234567
 ```
 
 We will show you how to configure the necessary services and retrieve these values in the instructions below:
@@ -31,8 +29,7 @@ The following prerequisites are required to run the application.
 1. A [Bluemix](https://www.ibm.com/cloud-computing/bluemix/) account.
 2. A [Watson Conversation](https://www.ibm.com/watson/developercloud/conversation.html) service provisioned in your Bluemix account.
 3. A [Cloudant](http://cloudant.com/) service provisioned in your Bluemix account.
-3. A [Mapbox](https://www.mapbox.com/) access token.
-3. A [Twilio](https://twilio.com/) phone number.
+4. A [Mapbox](https://www.mapbox.com/) access token.
 
 To run locally you will need Node.js 4.3.2 or greater.
 
@@ -62,13 +59,19 @@ Copy the .env.template file included in the project to .env. This file will cont
 cp .env.template .env
 ```
 
-### Twilio
-
-TBD
-
 ### Mapbox
 
-TBD
+The application requires that you have a free Mapbox account and API token.
+
+To sign up for a Mapbox account go to https://www.mapbox.com/signup/.
+ 
+To create an API token go to https://www.mapbox.com/studio/account/tokens/.
+
+Once you have your API token copy it to your .env file:
+
+```
+MAPBOX_ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
 
 ### Bluemix
 
@@ -142,7 +145,7 @@ We're almost there! Next, we'll provision an instance of Cloudant in our Bluemix
 2. In the IBM Bluemix Catalog search for **Cloudant**.
 3. Select the **Cloudant NoSQL DB** service.
 
-    ![Watson Conversation](screenshots/cloudant1.png?rev=1&raw=true)
+    ![Cloudant](screenshots/cloudant1.png?rev=1&raw=true)
 
 4. Click the **Create** button on the Cloudant detail page.
 5. On your newly created Cloudant service page click the **Service Credentials** tab.
@@ -154,8 +157,26 @@ We're almost there! Next, we'll provision an instance of Cloudant in our Bluemix
     CLOUDANT_PASSWORD=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CLOUDANT_URL=https://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx-bluemix.cloudant.com
     ```
+Next, create the following databases in Cloudant:
 
-TBD: Populate database...
+1. `sxswsessions`
+2. `sxswusers`
+3. `sxswlogs`
+
+Note: You can specify alternative names for these databases. If you do so be sure to update your .env file.
+  
+Finally, we need to populate our `sxswsessions` database. We've made the list of SXSW events available @ https://opendata.cloudant.com/sxswsessions.
+
+You can use the replication feature in Cloudant to copy these events into your Cloudant database.
+
+1. In Cloudant select **Replication**.
+2. Click the **New Replication** button:
+
+    ![Cloudant](screenshots/cloudant2.png?rev=2&raw=true)
+
+3. Configure the replication task as follows:
+
+    ![Cloudant](screenshots/cloudant3.png?rev=2&raw=true)
 
 ### Run Locally
 
@@ -168,11 +189,15 @@ npm start
 If all is well you should see output similar to the following:
 
 ```
-Getting database...
+Getting event database...
 Server starting on http://localhost:6018
+Getting user database...
+Getting dialog database...
 ```
 
-To interact with the bot go to the URL printed in the log.
+To interact with the bot go to the URL printed in the log. Here's a sample conversation:
+
+![Screenshot](screenshots/app1.png?rev=1&raw=true)
 
 ## License
 
