@@ -176,7 +176,7 @@ You can use the replication feature in Cloudant to copy these events into your C
 
 3. Configure the replication task as follows:
 
-    ![Cloudant](screenshots/cloudant3.png?rev=1&raw=true)
+    ![Cloudant](screenshots/cloudant3.png?rev=2&raw=true)
 
 ### Run Locally
 
