@@ -72,6 +72,8 @@ app.get('/', (req, res) => {
     res.render('index.ejs', {
         webSocketProtocol: appUrl.indexOf('http://') == 0 ? 'ws://' : 'wss://',
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
+        mapboxStyle: process.env.MAPBOX_STYLE || 'mapbox://styles/mapbox/dark-v9',
+        mapboxIcon: process.env.MAPBOX_ICON || 'marker-11',
         token: req.query.token || uuidV4()
     });
 });
@@ -90,6 +92,8 @@ app.get('/eventList', (req, res) => {
             events: events,
             eventJson: JSON.stringify(events),
             mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
+            mapboxStyle: process.env.MAPBOX_STYLE || 'mapbox://styles/mapbox/dark-v9',
+            mapboxIcon: process.env.MAPBOX_ICON || 'marker-11',
             token: req.query.token || uuidV4()
         });
     });

@@ -4,7 +4,8 @@ Cognitive Event Finder is a web-based chatbot for finding events/sessions at con
 It uses Watson Conversation to manage the chat, Cloudant for retrieving events,
 and Mapbox for mapping and finding popular events. 
 
-You can find a working example @ https://cognitive-event-finder.mybluemix.net/
+We recently feature the Cognitive Event Finder at SXSW.
+You can see a working version @ https://cognitive-event-finder.mybluemix.net/ where you can search for SXSW events.
 
 ### Quick Reference
 
