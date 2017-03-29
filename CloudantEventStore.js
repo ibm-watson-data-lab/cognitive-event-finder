@@ -6,14 +6,18 @@ class CloudantEventStore {
      * Creates a new instance of CloudantEventStore.
      * @param {Object} cloudant - The instance of cloudant to connect to
      * @param {string} dbName - The name of the database to use
+     * @param {int} maxSearchTimeHours - The maximum # of hours to search for events after the search start time (or current time)
+     * @param {int} searchStartTime - Override the search start time. If <=0 use current time.
+     * @param {int} searchStartOffsetHours - Offset the search start time (or current time) by the specified # of hours
      */
-    constructor(cloudant, dbName, maxSearchTimeHours, timeWarpHours) {
+    constructor(cloudant, dbName, maxSearchTimeHours, searchStartTime, searchStartOffsetHours) {
         this.cloudant = cloudant;
         this.dbName = dbName;
         this.db = null;
         this.maxSearchTimeHours = maxSearchTimeHours;
         this.millisPerHour = 60 * 60 * 1000;
-        this.timeWarpMillis = timeWarpHours * this.millisPerHour;
+        this.searchStartOffsetMillis = searchStartOffsetHours * this.millisPerHour;
+        this.searchStartTime = searchStartTime;
     }
 
     /**
@@ -168,7 +172,11 @@ class CloudantEventStore {
      * @returns {Promise.<TResult>}
      */
     findEvents(designDoc, searchIndex, query, searchTimeHours, count) {
-        const from = Date.now() + this.timeWarpMillis;
+        let start = Date.now();
+        if (this.searchStartTime > 0) {
+            start = this.searchStartTime * 1000;
+        }
+        const from = start + this.searchStartOffsetMillis;
         const to = from + (this.millisPerHour * searchTimeHours);
         const queryWithDate = `date:[${from} TO ${to}] AND (${query})`;
         return this.db.search(designDoc, searchIndex, {q:queryWithDate, include_docs:true})

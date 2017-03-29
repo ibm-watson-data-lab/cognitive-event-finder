@@ -29,13 +29,14 @@ let appPort = process.env.PORT || appEnv.port;
     let searchResultCount = parseInt(process.env.SEARCH_RESULT_COUNT) || 5;
     let searchTimeHours = parseInt(process.env.SEARCH_TIME_HOURS) || 8;
     let maxSearchTimeHours = parseInt(process.env.MAX_SEARCH_TIME_HOURS) || 8;
-    let warpTimeHours = parseInt(process.env.WARP_TIME_HOURS) || 0;
+    let searchStartStart = parseInt(process.env.SEARCH_START_TIME) || 0;
+    let searchTimeOffsetHours = parseInt(process.env.SEARCH_START_TIME_OFFSET_HOURS) || 0;
     let cloudantClient = cloudant({
         url: process.env.CLOUDANT_URL,
         plugin:'promises'
     });
     cloudantDialogStore = new CloudantDialogStore(cloudantClient, process.env.CLOUDANT_DIALOG_DB_NAME);
-    cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME, maxSearchTimeHours, warpTimeHours);
+    cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME, maxSearchTimeHours, searchStartStart, searchTimeOffsetHours);
     cloudantUserStore = new CloudantUserStore(cloudantClient, process.env.CLOUDANT_USER_DB_NAME);
     eventBot = new EventBot(
         searchResultCount,
