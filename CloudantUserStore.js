@@ -21,14 +21,13 @@ class CloudantUserStore {
         console.log('Getting user database...');
         this.db = this.cloudant.db.use(this.dbName);
         // crate the date/userId index
-        // var index = {
-        //     type: 'json',
-        //     index: {
-        //         fields: ['token']
-        //     }
-        // };
-        // return this.db.index(index);
-        return Promise.resolve(true);
+        var index = {
+            type: 'json',
+            index: {
+                fields: ['token']
+            }
+        };
+        return this.db.index(index);
     }
 
     /**

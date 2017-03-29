@@ -38,6 +38,10 @@ let appPort = process.env.PORT || appEnv.port;
     cloudantDialogStore = new CloudantDialogStore(cloudantClient, process.env.CLOUDANT_DIALOG_DB_NAME);
     cloudantEventStore = new CloudantEventStore(cloudantClient, process.env.CLOUDANT_EVENT_DB_NAME || process.env.CLOUDANT_DB_NAME, maxSearchTimeHours, searchStartStart, searchTimeOffsetHours);
     cloudantUserStore = new CloudantUserStore(cloudantClient, process.env.CLOUDANT_USER_DB_NAME);
+    let twilioClient = null;
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        twilioClient = new TwilioRestClient(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+    }
     eventBot = new EventBot(
         searchResultCount,
         searchTimeHours,
@@ -48,7 +52,7 @@ let appPort = process.env.PORT || appEnv.port;
         process.env.CONVERSATION_USERNAME,
         process.env.CONVERSATION_PASSWORD,
         process.env.CONVERSATION_WORKSPACE_ID,
-        new TwilioRestClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN),
+        twilioClient,
         process.env.TWILIO_PHONE_NUMBER,
         http,
         appUrl,
