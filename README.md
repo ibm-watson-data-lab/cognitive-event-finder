@@ -1,3 +1,5 @@
+:no_entry_sign: This project is no longer maintained
+
 # Cognitive Event Finder
 
 Cognitive Event Finder is a web-based chatbot for finding events/sessions at conferences.
